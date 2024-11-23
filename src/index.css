@@ -41,10 +41,14 @@ canvas {
   position: absolute;
   top: 0;
   left: 0;
-  width: 20px;
-  height: 20px;
-  background: red;
-  border-radius: 50%;
   will-change: tranform;
   transform: translate3d(var(--element-screenX), var(--element-screenY), 0) translate(-50%, -50%);
+}
+
+/* Temporary styles for displaying circle */
+.world-element {
+  min-width: 20px;
+  min-height: 20px;
+  background: red;
+  border-radius: 50%;
 }
