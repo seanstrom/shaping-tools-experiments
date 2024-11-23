@@ -113,8 +113,8 @@ function draw(canvas, ctx, state) {
     ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY) // Apply pan and zoom
     ctx.clearRect(-offsetX / scale, -offsetY / scale, canvas.width / scale, canvas.height / scale)
 
-    // Draw a grid to visualize world space
-    drawGrid(canvas, ctx, state)
+    // Draw dots instead of grid
+    drawDots(canvas, ctx, state)
 
     // Draw arrows connecting circles
     drawArrows(ctx, state)
@@ -123,7 +123,27 @@ function draw(canvas, ctx, state) {
     updateElementPositions(state)
 }
 
-// Draw grid for visualizing world space
+// New function to draw dots
+function drawDots(canvas, ctx, state) {
+    const { scale, offsetX, offsetY } = state
+
+    const gridSize = 50; // Size of grid cells
+    const dotRadius = 1; // Size of the dots
+    const startX = Math.floor((-offsetX / scale) / gridSize) * gridSize
+    const startY = Math.floor((-offsetY / scale) / gridSize) * gridSize
+
+    ctx.fillStyle = '#ddd'
+
+    // Draw dots at grid intersections
+    for (let x = startX; x < canvas.width / scale - offsetX / scale; x += gridSize) {
+        for (let y = startY; y < canvas.height / scale - offsetY / scale; y += gridSize) {
+            ctx.beginPath()
+            ctx.arc(x, y, dotRadius, 0, Math.PI * 2)
+            ctx.fill()
+        }
+    }
+}
+
 function drawGrid(canvas, ctx, state) {
     const { scale, offsetX, offsetY } = state
 
