@@ -206,11 +206,7 @@ function createElementAtWorldPosition(state, worldX, worldY) {
     const screenX = worldX * state.scale + state.offsetX;
     const screenY = worldY * state.scale + state.offsetY;
 
-    // div.style.left = `${screenX}px`;
-    // div.style.top = `${screenY}px`;
-    div.style.setProperty('--element-screenX', `${screenX}px`);
-    div.style.setProperty('--element-screenY', `${screenY}px`);
-    // div.style.transform = `translate3d(${screenX}px, ${screenY}px, 0)`;
+    setElementPosition(div, screenX, screenY);
 
     document.body.appendChild(div);
 
@@ -230,13 +226,13 @@ function updateElementPositions(state) {
         const screenX = worldX * scale + offsetX;
         const screenY = worldY * scale + offsetY;
 
-        // el.style.transform = `translate3d(${screenX}px, ${screenY}px, 0)`;
-        // Combine the positioning transform with the existing centering transform
-        // el.style.left = `${screenX}px`;
-        // el.style.top = `${screenY}px`;
-        el.style.setProperty('--element-screenX', `${screenX}px`);
-        el.style.setProperty('--element-screenY', `${screenY}px`);
+        setElementPosition(el, screenX, screenY);
     }
+}
+
+function setElementPosition(el, screenX, screenY) {
+    el.style.setProperty('--element-screenX', `${screenX}px`);
+    el.style.setProperty('--element-screenY', `${screenY}px`);
 }
 
 main()
