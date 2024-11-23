@@ -1,34 +1,29 @@
 import "./index.css"
 
-function main() {
-    const canvas = document.getElementById('canvas')
-    const ctx = canvas.getContext('2d')
-    const state = {
-        scale: 1,
-        offsetX: 0,
-        offsetY: 0,
+function resizeCanvasPlugin(world, commands) {
+    const {
+        window: view,
+        canvasContext: ctx,
+        canvasElement: canvas,
+        canvasState: state,
+    } = world
 
-        isPanning: false,
-        startX: undefined,
-        startY: undefined,
-        hasMoved: false,
+    canvas.width = view.innerWidth
+    canvas.height = view.innerHeight
 
-        // Minimum movement in pixels to consider as a pan
-        moveThreshold: 5,
-
-        // Store red circle positions
-        circles: [],
-    }
-
-    canvas.width = window.innerWidth
-    canvas.height = window.innerHeight
-
-    // Update canvas size on window resize
-    window.addEventListener('resize', () => {
-        canvas.width = window.innerWidth
-        canvas.height = window.innerHeight
-        draw(canvas, ctx, state)
+    view.addEventListener('resize', () => {
+        canvas.width = view.innerWidth
+        canvas.height = view.innerHeight
+        commands.draw(canvas, ctx, state)
     })
+}
+
+function panCanvasPlugin(world, commands) {
+    const {
+        canvasContext: ctx,
+        canvasElement: canvas,
+        canvasState: state
+    } = world
 
     // Handle panning
     canvas.addEventListener('mousedown', (e) => {
@@ -55,7 +50,7 @@ function main() {
         state.startX = e.clientX
         state.startY = e.clientY
 
-        draw(canvas, ctx, state)
+        commands.draw(canvas, ctx, state)
     })
 
     canvas.addEventListener('mouseup', (e) => {
@@ -71,10 +66,17 @@ function main() {
 
             createElementAtWorldPosition(state, worldX, worldY)
             state.circles.push({ worldX, worldY }) // Store the circle's position
-            draw(canvas, ctx, state)
+            commands.draw(canvas, ctx, state)
         }
     })
+}
 
+function zoomCanvasPlugin(world, commands) {
+    const {
+        canvasContext: ctx,
+        canvasElement: canvas,
+        canvasState: state
+    } = world
 
     // Handle zooming
     canvas.addEventListener('wheel', (e) => {
@@ -100,10 +102,8 @@ function main() {
 
         state.scale = newScale
 
-        draw(canvas, ctx, state)
+        commands.draw(canvas, ctx, state)
     })
-
-    draw(canvas, ctx, state)
 }
 
 // Redraw canvas
@@ -255,4 +255,47 @@ function setElementPosition(el, screenX, screenY) {
     el.style.setProperty('--element-screenY', `${screenY}px`);
 }
 
-main()
+(function main() {
+    const canvas = document.getElementById('canvas')
+    const ctx = canvas.getContext('2d')
+
+    const state = {
+        scale: 1,
+        offsetX: 0,
+        offsetY: 0,
+
+        isPanning: false,
+        startX: undefined,
+        startY: undefined,
+        hasMoved: false,
+
+        // Minimum movement in pixels to consider as a pan
+        moveThreshold: 5,
+
+        // Store red circle positions
+        circles: [],
+    }
+
+    const world = {
+        window: window,
+        canvasContext: ctx,
+        canvasElement: canvas,
+        canvasState: state,
+    }
+
+    const commands = {
+        draw: draw,
+    }
+
+    const plugins = [
+        resizeCanvasPlugin,
+        panCanvasPlugin,
+        zoomCanvasPlugin,
+    ]
+
+    for (const plugin of plugins) {
+        plugin(world, commands)
+    }
+
+    commands.draw(canvas, ctx, state)
+})()
