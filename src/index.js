@@ -56,7 +56,7 @@ function panCanvasPlugin(world, commands) {
     canvas.addEventListener('mouseup', (e) => {
         state.isPanning = false
 
-        // Only create a circle if it was a click (no significant movement)
+        // Only create an entity if it was a click (no significant movement)
         if (!state.hasMoved) {
             const rect = canvas.getBoundingClientRect()
 
@@ -64,8 +64,7 @@ function panCanvasPlugin(world, commands) {
             const worldX = (e.clientX - rect.left - state.offsetX) / state.scale
             const worldY = (e.clientY - rect.top - state.offsetY) / state.scale
 
-            createElementAtWorldPosition(state, worldX, worldY)
-            state.circles.push({ worldX, worldY }) // Store the circle's position
+            createEntityAtWorldPosition(world, commands.uuid(), worldX, worldY)
             commands.draw(canvas, ctx, state)
         }
     })
@@ -171,17 +170,17 @@ function drawGrid(canvas, ctx, state) {
 
 // Draw arrows connecting the circles
 function drawArrows(ctx, state) {
-    const { circles } = state
+    const { entityIds, entities } = state;
 
-    if (circles.length < 2) return; // Need at least two circles to draw an arrow
+    if (entityIds.length < 2) return;
 
     ctx.strokeStyle = 'blue';
     ctx.lineWidth = 2;
     ctx.fillStyle = 'blue';
 
-    for (let i = 0; i < circles.length - 1; i++) {
-        const start = circles[i];
-        const end = circles[i + 1];
+    for (let i = 0; i < entityIds.length - 1; i++) {
+        const start = entities[entityIds[i]];
+        const end = entities[entityIds[i + 1]];
 
         // Calculate control point for the curve (midpoint with an offset)
         const midX = (start.worldX + end.worldX) / 2;
@@ -215,20 +214,31 @@ function drawArrowhead(ctx, state, x, y, fromX, fromY) {
     ctx.fill();
 }
 
+function makeEntityElement(entityId, worldX, worldY) {
+    const div = document.createElement('div')
+    div.classList.add('world-element')
+    div.id = `entity-${entityId}`
+    div.dataset.entityId = entityId
+    div.dataset.worldX = worldX
+    div.dataset.worldY = worldY
+    return div
+}
+
 // Create an HTML element at the given world position
-function createElementAtWorldPosition(state, worldX, worldY) {
-    const div = document.createElement('div');
-    div.classList.add('world-element');
-    div.dataset.worldX = worldX;
-    div.dataset.worldY = worldY;
+function createEntityAtWorldPosition(world, entityId, worldX, worldY) {
+    const { canvasState: state, window: view } = world
+    const element = makeEntityElement(entityId, worldX, worldY)
 
     // Convert world coordinates to screen coordinates
     const screenX = worldX * state.scale + state.offsetX;
     const screenY = worldY * state.scale + state.offsetY;
 
-    setElementPosition(div, screenX, screenY);
+    setElementPosition(element, screenX, screenY);
+    view.document.body.appendChild(element);
 
-    document.body.appendChild(div);
+    // Store entity in state
+    state.entities[entityId] = { worldX, worldY, entityId };
+    state.entityIds.push(entityId);
 
     // Update its position immediately
     updateElementPositions(state);
@@ -236,23 +246,25 @@ function createElementAtWorldPosition(state, worldX, worldY) {
 
 // Update positions of HTML elements based on transformations
 function updateElementPositions(state) {
-    for (const el of document.querySelectorAll(".world-element")) {
-        const { scale, offsetX, offsetY } = state
-
-        const worldX = Number.parseFloat(el.dataset.worldX);
-        const worldY = Number.parseFloat(el.dataset.worldY);
-
-        // Convert world coordinates to screen coordinates
-        const screenX = worldX * scale + offsetX;
-        const screenY = worldY * scale + offsetY;
-
-        setElementPosition(el, screenX, screenY);
+    for (const entityId of state.entityIds) {
+        const element = document.getElementById(`entity-${entityId}`);
+        const entity = state.entities[entityId];
+        if (element && entity) {
+            const { scale, offsetX, offsetY } = state;
+            const screenX = entity.worldX * scale + offsetX;
+            const screenY = entity.worldY * scale + offsetY;
+            setElementPosition(element, screenX, screenY);
+        }
     }
 }
 
 function setElementPosition(el, screenX, screenY) {
     el.style.setProperty('--element-screenX', `${screenX}px`);
     el.style.setProperty('--element-screenY', `${screenY}px`);
+}
+
+function makeUUID() {
+    return crypto.randomUUID()
 }
 
 (function main() {
@@ -272,8 +284,9 @@ function setElementPosition(el, screenX, screenY) {
         // Minimum movement in pixels to consider as a pan
         moveThreshold: 5,
 
-        // Store red circle positions
-        circles: [],
+        // Store entities by their ID
+        entities: {},
+        entityIds: [],
     }
 
     const world = {
@@ -285,6 +298,7 @@ function setElementPosition(el, screenX, screenY) {
 
     const commands = {
         draw: draw,
+        uuid: makeUUID,
     }
 
     const plugins = [
