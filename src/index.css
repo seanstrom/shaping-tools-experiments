@@ -27,7 +27,8 @@ body {
 
 /* Canvas stuff */
 
-body, html {
+body,
+html {
   margin: 0;
   overflow: hidden;
   height: 100%;
@@ -38,11 +39,13 @@ canvas {
 }
 
 .world-element {
-  position: absolute;
   top: 0;
   left: 0;
+  position: absolute;
   will-change: tranform;
-  transform: translate3d(var(--element-screenX), var(--element-screenY), 0) translate(-50%, -50%);
+  transform: translate3d(
+    var(--element-screenX), var(--element-screenY), 0)
+    translate(-50%, -50%);
 }
 
 /* Temporary styles for displaying circle */
