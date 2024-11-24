@@ -55,7 +55,9 @@ function panCanvasPlugin(world, commands) {
         state.startX = e.clientX
         state.startY = e.clientY
 
-        commands.draw(canvas, ctx, state)
+        requestAnimationFrame(() => {
+            commands.draw(canvas, ctx, state)
+        })
     })
 
     canvas.addEventListener('mouseup', (e) => {
