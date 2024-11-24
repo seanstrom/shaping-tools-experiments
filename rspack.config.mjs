@@ -22,7 +22,8 @@ export default defineConfig({
 						options: {
 							jsc: {
 								parser: {
-									syntax: "ecmascript"
+									syntax: "ecmascript",
+									jsx: true,
 								}
 							},
 							env: { targets }
