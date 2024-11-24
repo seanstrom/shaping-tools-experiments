@@ -1,3 +1,8 @@
+import React, { useEffect } from "react"
+import { createPortal } from "react-dom"
+import { createRoot } from "react-dom/client"
+import { atom, createStore, useAtom, useAtomValue, useStore, Provider } from "jotai"
+
 import "./index.css"
 
 function resizeCanvasPlugin(world, commands) {
@@ -64,7 +69,9 @@ function panCanvasPlugin(world, commands) {
             const worldX = (e.clientX - rect.left - state.offsetX) / state.scale
             const worldY = (e.clientY - rect.top - state.offsetY) / state.scale
 
-            createEntityAtWorldPosition(world, commands.uuid(), worldX, worldY)
+            const entityId = commands.uuid()
+            const portal = createEntityAtWorldPosition(world, entityId, worldX, worldY)
+            commands.addPortal(entityId, portal)
             commands.draw(canvas, ctx, state)
         }
     })
@@ -230,18 +237,20 @@ function createEntityAtWorldPosition(world, entityId, worldX, worldY) {
     const element = makeEntityElement(entityId, worldX, worldY)
 
     // Convert world coordinates to screen coordinates
-    const screenX = worldX * state.scale + state.offsetX;
-    const screenY = worldY * state.scale + state.offsetY;
+    const screenX = worldX * state.scale + state.offsetX
+    const screenY = worldY * state.scale + state.offsetY
 
-    setElementPosition(element, screenX, screenY);
-    view.document.body.appendChild(element);
+    setElementPosition(element, screenX, screenY)
+    view.document.body.appendChild(element)
 
     // Store entity in state
-    state.entities[entityId] = { worldX, worldY, entityId };
-    state.entityIds.push(entityId);
+    state.entities[entityId] = { worldX, worldY, entityId }
+    state.entityIds.push(entityId)
 
     // Update its position immediately
-    updateElementPositions(state);
+    updateElementPositions(state)
+
+    return element
 }
 
 // Update positions of HTML elements based on transformations
@@ -258,9 +267,9 @@ function updateElementPositions(state) {
     }
 }
 
-function setElementPosition(el, screenX, screenY) {
-    el.style.setProperty('--element-screenX', `${screenX}px`);
-    el.style.setProperty('--element-screenY', `${screenY}px`);
+function setElementPosition(element, screenX, screenY) {
+    element.style.setProperty('--element-screenX', `${screenX}px`)
+    element.style.setProperty('--element-screenY', `${screenY}px`)
 }
 
 function makeUUID() {
@@ -268,6 +277,7 @@ function makeUUID() {
 }
 
 (function main() {
+    const portals = document.getElementById('portals')
     const canvas = document.getElementById('canvas')
     const ctx = canvas.getContext('2d')
 
@@ -294,11 +304,26 @@ function makeUUID() {
         canvasContext: ctx,
         canvasElement: canvas,
         canvasState: state,
+        canvasPortals: atom([]),
+        canvasStore: createStore(),
+        portalsRoot: createRoot(portals),
+        portalsElement: portals,
+    }
+
+    const render = () => {
+        world.portalsRoot.render(<App store={world.canvasStore} portals={world.canvasPortals} />)
+    }
+
+    const addPortal = (entityId, container) => {
+        const updatedPortals = [...world.canvasStore.get(world.canvasPortals), { entityId, container }]
+        world.canvasStore.set(world.canvasPortals, updatedPortals)
     }
 
     const commands = {
         draw: draw,
+        render: render,
         uuid: makeUUID,
+        addPortal: addPortal,
     }
 
     const plugins = [
@@ -312,4 +337,34 @@ function makeUUID() {
     }
 
     commands.draw(canvas, ctx, state)
+
+    world.canvasStore.sub(world.canvasPortals, () => {
+        commands.render()
+    })
 })()
+
+function Block({ id }) {
+    return <div>${id}</div>
+}
+
+const BlockMemo = React.memo(Block)
+
+function Portal({ children, container }) {
+    return createPortal(children, container)
+}
+
+function Portals({ portals: portalsAtom }) {
+    const portals = useAtomValue(portalsAtom)
+    return <>
+        {portals.map(({ entityId, container }) =>
+            <Portal key={entityId} container={container}>
+                <BlockMemo id={entityId} />
+            </Portal>)}
+    </>
+}
+
+function App({ store, portals }) {
+    return <Provider store={store}>
+        <Portals portals={portals} />
+    </Provider>
+}
