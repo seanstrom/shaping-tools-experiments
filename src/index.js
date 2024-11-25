@@ -81,11 +81,9 @@ function panCanvasPlugin(world, commands) {
         })
     })
 
-    surface.addEventListener('mouseup', (e) => {
-        state.isPanning = false
-
+    canvas.addEventListener('click', (e) => {
         // Only create an entity if it was a click (no significant movement)
-        if (!state.hasMoved) {
+        if (!state.isPanning && !state.hasMoved) {
             const rect = canvas.getBoundingClientRect()
 
             // Convert screen coordinates to world coordinates
@@ -97,6 +95,10 @@ function panCanvasPlugin(world, commands) {
             commands.addPortal(entityId, portal)
             commands.draw(canvas, ctx, state)
         }
+    })
+
+    surface.addEventListener('mouseup', (e) => {
+        state.isPanning = false
     })
 }
 
