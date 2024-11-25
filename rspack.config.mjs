@@ -5,6 +5,9 @@ import { rspack } from "@rspack/core";
 const targets = ["chrome >= 87", "edge >= 88", "firefox >= 78", "safari >= 14"];
 
 export default defineConfig({
+	resolve: {
+		extensions: [".js", ".jsx", ".ts", ".tsx", ".json", ".wasm"]
+	},
 	entry: {
 		main: "./src/index.js"
 	},
@@ -15,7 +18,7 @@ export default defineConfig({
 				type: "asset"
 			},
 			{
-				test: /\.js$/,
+				test: /\.jsx?$/,
 				use: [
 					{
 						loader: "builtin:swc-loader",
