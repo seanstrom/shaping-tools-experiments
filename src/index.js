@@ -83,7 +83,8 @@ function zoomCanvasPlugin(world, commands) {
     const {
         canvasContext: ctx,
         canvasElement: canvas,
-        canvasState: state
+        canvasState: state,
+        window: view,
     } = world
 
     // Handle zooming
@@ -109,6 +110,7 @@ function zoomCanvasPlugin(world, commands) {
         state.offsetY -= (worldY * newScale - worldY * scale)
 
         state.scale = newScale
+        view.document.body.style.setProperty('--element-scale', `${newScale}`)
 
         commands.draw(canvas, ctx, state)
     })
