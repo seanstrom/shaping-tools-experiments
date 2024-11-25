@@ -11,6 +11,8 @@ import {LexicalErrorBoundary} from '@lexical/react/LexicalErrorBoundary';
 const theme = {
   // Theme styling goes here
   //...
+  root: 'editor-root',
+  paragraph: 'editor-paragraph',
 }
 
 // Catch any errors that occur during Lexical updates and log them
@@ -31,7 +33,7 @@ export function Editor() {
     <LexicalComposer initialConfig={initialConfig}>
       <RichTextPlugin
         contentEditable={<ContentEditable />}
-        placeholder={<div>Enter some text...</div>}
+        placeholder={<div className="editor-placeholder">Enter some text...</div>}
         ErrorBoundary={LexicalErrorBoundary}
       />
       <HistoryPlugin />

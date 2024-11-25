@@ -52,8 +52,36 @@ canvas {
 
 /* Temporary styles for displaying circle */
 .world-element {
-  min-width: 100px;
-  min-height: 100px;
-  background: rgba(255, 255, 0, 0.407);
-  padding: 0 10px;
+  min-width: 400px;
+  min-height: 300px;
+  background: rgba(187, 163, 83, 0.9);
+  padding: 10px;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+/* Editor */
+
+.editor-placeholder {
+  color: #e1d6d6;
+  overflow: hidden;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  user-select: none;
+  pointer-events: none;
+}
+
+.editor-paragraph {
+  margin: 0 0 2px 0;
+  position: relative;
+}
+
+.editor-root {
+  flex: 1;
+
+  &:focus-within {
+    outline: none;
+  }
 }
