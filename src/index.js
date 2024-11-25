@@ -32,11 +32,13 @@ function panCanvasPlugin(world, commands) {
         canvasState: state
     } = world
 
+    const surface = window.document.body
+
     // Handle panning
-    canvas.addEventListener('mousedown', (e) => {
+    surface.addEventListener('mousedown', (e) => {
         // Only start panning on primary (left) mouse button
         if (e.button !== 0) return
-        
+
         state.isPanning = true
         state.hasMoved = false
         state.startX = e.clientX
@@ -44,12 +46,12 @@ function panCanvasPlugin(world, commands) {
     })
 
     // Add trackpad two-finger pan
-    canvas.addEventListener('wheel', (e) => {
+    surface.addEventListener('wheel', (e) => {
         // Only handle two-finger pan when ctrl is not pressed (ctrl+wheel is for zoom)
         if (e.ctrlKey) return
 
         e.preventDefault()
-        
+
         state.offsetX += -e.deltaX
         state.offsetY += -e.deltaY
 
@@ -59,7 +61,7 @@ function panCanvasPlugin(world, commands) {
     }, { passive: false })
 
     // Existing mouse move and up handlers for regular mouse panning
-    canvas.addEventListener('mousemove', (e) => {
+    surface.addEventListener('mousemove', (e) => {
         if (!state.isPanning) return
 
         const dx = e.clientX - state.startX
@@ -81,7 +83,7 @@ function panCanvasPlugin(world, commands) {
         })
     })
 
-    canvas.addEventListener('mouseup', (e) => {
+    surface.addEventListener('mouseup', (e) => {
         state.isPanning = false
 
         // Only create an entity if it was a click (no significant movement)
@@ -108,10 +110,12 @@ function zoomCanvasPlugin(world, commands) {
         window: view,
     } = world
 
-    canvas.addEventListener('wheel', (e) => {
+    const surface = view.document.body
+
+    surface.addEventListener('wheel', (e) => {
         // Only zoom when Ctrl is pressed
         if (!e.ctrlKey) return
-        
+
         e.preventDefault()
 
         // Use deltaY for zoom amount (might need to adjust sensitivity)
