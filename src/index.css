@@ -52,8 +52,8 @@ canvas {
 
 /* Temporary styles for displaying circle */
 .world-element {
-  min-width: 20px;
-  min-height: 20px;
-  background: red;
-  border-radius: 50%;
+  min-width: 100px;
+  min-height: 100px;
+  background: rgba(255, 255, 0, 0.407);
+  padding: 0 10px;
 }

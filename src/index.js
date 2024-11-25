@@ -1,7 +1,9 @@
 import React, { useEffect } from "react"
 import { createPortal } from "react-dom"
 import { createRoot } from "react-dom/client"
-import { atom, createStore, useAtom, useAtomValue, useStore, Provider } from "jotai"
+import { atom, createStore, useAtomValue, Provider } from "jotai"
+
+import { Editor } from "./editor"
 
 import "./index.css"
 
@@ -348,7 +350,7 @@ function makeUUID() {
 })()
 
 function Block({ id }) {
-    return <div>${id}</div>
+    return <Editor />
 }
 
 const BlockMemo = React.memo(Block)
