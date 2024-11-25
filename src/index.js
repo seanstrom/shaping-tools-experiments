@@ -34,12 +34,31 @@ function panCanvasPlugin(world, commands) {
 
     // Handle panning
     canvas.addEventListener('mousedown', (e) => {
+        // Only start panning on primary (left) mouse button
+        if (e.button !== 0) return
+        
         state.isPanning = true
-        state.hasMoved = false // Reset movement tracker
+        state.hasMoved = false
         state.startX = e.clientX
         state.startY = e.clientY
     })
 
+    // Add trackpad two-finger pan
+    canvas.addEventListener('wheel', (e) => {
+        // Only handle two-finger pan when ctrl is not pressed (ctrl+wheel is for zoom)
+        if (e.ctrlKey) return
+
+        e.preventDefault()
+        
+        state.offsetX += -e.deltaX
+        state.offsetY += -e.deltaY
+
+        requestAnimationFrame(() => {
+            commands.draw(canvas, ctx, state)
+        })
+    }, { passive: false })
+
+    // Existing mouse move and up handlers for regular mouse panning
     canvas.addEventListener('mousemove', (e) => {
         if (!state.isPanning) return
 
@@ -89,33 +108,35 @@ function zoomCanvasPlugin(world, commands) {
         window: view,
     } = world
 
-    // Handle zooming
     canvas.addEventListener('wheel', (e) => {
-        const { scale } = state
+        // Only zoom when Ctrl is pressed
+        if (!e.ctrlKey) return
+        
+        e.preventDefault()
 
+        // Use deltaY for zoom amount (might need to adjust sensitivity)
         const zoomAmount = e.deltaY * -0.001
-        const newScale = scale + zoomAmount
+        const newScale = state.scale + zoomAmount
 
-        if (newScale < 0.1 || newScale > 10) return // Prevent too much zoom in/out
+        if (newScale < 0.1 || newScale > 10) return
 
-        // Get the mouse position relative to the canvas
         const rect = canvas.getBoundingClientRect()
-        const mouseX = (e.clientX - rect.left) // Mouse position relative to canvas
-        const mouseY = (e.clientY - rect.top)
+        const mouseX = e.clientX - rect.left
+        const mouseY = e.clientY - rect.top
 
-        // Convert mouse position to world space
-        const worldX = (mouseX - state.offsetX) / scale
-        const worldY = (mouseY - state.offsetY) / scale
+        const worldX = (mouseX - state.offsetX) / state.scale
+        const worldY = (mouseY - state.offsetY) / state.scale
 
-        // Adjust offset to keep the zoom centered around the mouse
-        state.offsetX -= (worldX * newScale - worldX * scale)
-        state.offsetY -= (worldY * newScale - worldY * scale)
+        state.offsetX -= (worldX * newScale - worldX * state.scale)
+        state.offsetY -= (worldY * newScale - worldY * state.scale)
 
         state.scale = newScale
         view.document.body.style.setProperty('--element-scale', `${newScale}`)
 
-        commands.draw(canvas, ctx, state)
-    })
+        requestAnimationFrame(() => {
+            commands.draw(canvas, ctx, state)
+        })
+    }, { passive: false })
 }
 
 // Redraw canvas
