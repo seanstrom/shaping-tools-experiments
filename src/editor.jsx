@@ -1,5 +1,5 @@
 import {$getRoot, $getSelection} from 'lexical';
-import React, {useEffect} from 'react';
+import React from 'react';
 
 import {AutoFocusPlugin} from '@lexical/react/LexicalAutoFocusPlugin';
 import {LexicalComposer} from '@lexical/react/LexicalComposer';
