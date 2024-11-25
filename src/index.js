@@ -1,10 +1,8 @@
-import React, { useEffect } from "react"
-import { createPortal } from "react-dom"
+import React from "react"
 import { createRoot } from "react-dom/client"
-import { atom, createStore, useAtomValue, Provider } from "jotai"
+import { atom, createStore } from "jotai"
 
-import { Editor } from "./editor"
-
+import { App } from "./app"
 import "./index.css"
 
 function resizeCanvasPlugin(world, commands) {
@@ -373,29 +371,3 @@ function makeUUID() {
         commands.render()
     })
 })()
-
-function Block({ id }) {
-    return <Editor />
-}
-
-const BlockMemo = React.memo(Block)
-
-function Portal({ children, container }) {
-    return createPortal(children, container)
-}
-
-function Portals({ portals: portalsAtom }) {
-    const portals = useAtomValue(portalsAtom)
-    return <>
-        {portals.map(({ entityId, container }) =>
-            <Portal key={entityId} container={container}>
-                <BlockMemo id={entityId} />
-            </Portal>)}
-    </>
-}
-
-function App({ store, portals }) {
-    return <Provider store={store}>
-        <Portals portals={portals} />
-    </Provider>
-}
