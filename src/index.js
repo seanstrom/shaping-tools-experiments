@@ -81,22 +81,6 @@ function panCanvasPlugin(world, commands) {
         })
     })
 
-    canvas.addEventListener('click', (e) => {
-        // Only create an entity if it was a click (no significant movement)
-        if (!state.isPanning && !state.hasMoved) {
-            const rect = canvas.getBoundingClientRect()
-
-            // Convert screen coordinates to world coordinates
-            const worldX = (e.clientX - rect.left - state.offsetX) / state.scale
-            const worldY = (e.clientY - rect.top - state.offsetY) / state.scale
-
-            const entityId = commands.uuid()
-            const portal = createEntityAtWorldPosition(world, entityId, worldX, worldY)
-            commands.addPortal(entityId, portal)
-            commands.draw(canvas, ctx, state)
-        }
-    })
-
     surface.addEventListener('mouseup', (e) => {
         state.isPanning = false
     })
@@ -141,6 +125,30 @@ function zoomCanvasPlugin(world, commands) {
             commands.draw(canvas, ctx, state)
         })
     }, { passive: false })
+}
+
+function createNotePlugin(world, commands) {
+    const {
+        canvasContext: ctx,
+        canvasElement: canvas,
+        canvasState: state
+    } = world
+
+    canvas.addEventListener('click', (e) => {
+        // Only create an entity if it was a click (no significant movement)
+        if (!state.isPanning && !state.hasMoved) {
+            const rect = canvas.getBoundingClientRect()
+
+            // Convert screen coordinates to world coordinates
+            const worldX = (e.clientX - rect.left - state.offsetX) / state.scale
+            const worldY = (e.clientY - rect.top - state.offsetY) / state.scale
+
+            const entityId = commands.uuid()
+            const portal = createEntityAtWorldPosition(world, entityId, worldX, worldY)
+            commands.addPortal(entityId, portal)
+            commands.draw(canvas, ctx, state)
+        }
+    })
 }
 
 // Redraw canvas
@@ -361,6 +369,7 @@ function makeUUID() {
         resizeCanvasPlugin,
         panCanvasPlugin,
         zoomCanvasPlugin,
+        createNotePlugin,
     ]
 
     for (const plugin of plugins) {
