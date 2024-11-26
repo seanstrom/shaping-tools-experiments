@@ -55,6 +55,7 @@ canvas {
   width: 400px;
   min-height: 300px;
   background: rgba(38, 36, 27, 0.75);
+  border-radius: 0.5rem;
   padding: 10px;
   display: flex;
   flex: 1;
