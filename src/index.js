@@ -144,7 +144,7 @@ function createNotePlugin(world, commands) {
             const worldY = (e.clientY - rect.top - state.offsetY) / state.scale
 
             const entityId = commands.uuid()
-            const portal = createEntityAtWorldPosition(world, entityId, worldX, worldY)
+            const portal = createEntityAtWorldPosition(world, commands, entityId, worldX, worldY)
             commands.addPortal(entityId, portal)
             commands.draw(canvas, ctx, state)
         }
@@ -260,20 +260,77 @@ function drawArrowhead(ctx, state, x, y, fromX, fromY) {
     ctx.fill();
 }
 
-function makeEntityElement(entityId, worldX, worldY) {
-    const div = document.createElement('div')
-    div.classList.add('world-element')
-    div.id = `entity-${entityId}`
-    div.dataset.entityId = entityId
-    div.dataset.worldX = worldX
-    div.dataset.worldY = worldY
-    return div
+function makeEntityElement(world, commands, entityId, entityState) {
+    const { canvasState: state, canvasElement: canvas, canvasContext: ctx, window: view } = world
+    const { worldX, worldY } = entityState
+
+    const element = view.document.createElement('div')
+    element.classList.add('world-element')
+    element.id = `entity-${entityId}`
+    element.dataset.entityId = entityId
+    element.dataset.worldX = worldX
+    element.dataset.worldY = worldY
+
+    element.addEventListener('mousedown', (e) => {
+        entityState.isDragging = true
+        entityState.startX = e.clientX
+        entityState.startY = e.clientY
+        entityState.startWorldX = entityState.worldX
+        entityState.startWorldY = entityState.worldY
+        e.stopPropagation() // Prevent canvas pan
+    })
+
+    const surface = view.document.body
+
+    surface.addEventListener('mousemove', (e) => {
+        const entityState = state.entities[entityId]
+        if (!entityState.isDragging) return
+
+        const dx = e.clientX - entityState.startX
+        const dy = e.clientY - entityState.startY
+        const scale = state.scale
+
+        // Convert screen movement to world movement
+        const worldDX = dx / scale
+        const worldDY = dy / scale
+
+        const newWorldX = entityState.startWorldX + worldDX
+        const newWorldY = entityState.startWorldY + worldDY
+
+        element.dataset.worldX = newWorldX
+        element.dataset.worldY = newWorldY
+
+        entityState.worldX = newWorldX
+        entityState.worldY = newWorldY
+
+        commands.draw(canvas, ctx, state)
+    })
+
+    surface.addEventListener('mouseup', () => {
+        entityState.isDragging = false
+    })
+
+    return element
+}
+
+function makeDefaultEntityState(entityId, worldX, worldY) {
+    return {
+        worldX,
+        worldY,
+        entityId,
+        isDragging: false,
+        startX: 0,
+        startY: 0,
+        startWorldX: 0,
+        startWorldY: 0,
+    }
 }
 
 // Create an HTML element at the given world position
-function createEntityAtWorldPosition(world, entityId, worldX, worldY) {
+function createEntityAtWorldPosition(world, commands, entityId, worldX, worldY) {
     const { canvasState: state, window: view } = world
-    const element = makeEntityElement(entityId, worldX, worldY)
+    const entityState = makeDefaultEntityState(entityId, worldX, worldY)
+    const element = makeEntityElement(world, commands, entityId, entityState)
 
     // Convert world coordinates to screen coordinates
     const screenX = worldX * state.scale + state.offsetX
@@ -283,7 +340,7 @@ function createEntityAtWorldPosition(world, entityId, worldX, worldY) {
     view.document.body.appendChild(element)
 
     // Store entity in state
-    state.entities[entityId] = { worldX, worldY, entityId }
+    state.entities[entityId] = entityState
     state.entityIds.push(entityId)
 
     // Update its position immediately
