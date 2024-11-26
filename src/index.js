@@ -172,8 +172,8 @@ function draw(canvas, ctx, state) {
 function drawDots(canvas, ctx, state) {
     const { scale, offsetX, offsetY } = state
 
-    const gridSize = 50; // Size of grid cells
-    const dotRadius = 1; // Size of the dots
+    const gridSize = 25; // Size of grid cells
+    const dotRadius = 0.5; // Size of the dots
     const startX = Math.floor((-offsetX / scale) / gridSize) * gridSize
     const startY = Math.floor((-offsetY / scale) / gridSize) * gridSize
 
