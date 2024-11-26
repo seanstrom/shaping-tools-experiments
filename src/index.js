@@ -343,9 +343,6 @@ function createEntityAtWorldPosition(world, commands, entityId, worldX, worldY) 
     state.entities[entityId] = entityState
     state.entityIds.push(entityId)
 
-    // Update its position immediately
-    updateElementPositions(state)
-
     return element
 }
 
