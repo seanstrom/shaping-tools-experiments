@@ -174,22 +174,37 @@ function draw(canvas, ctx, state) {
     updateElementPositions(state)
 }
 
+function clamp(num, lower, upper) {
+    return Math.min(Math.max(num, lower), upper);
+}
+
+function round(num) {
+    return Math.round((num + Number.EPSILON) * 100) / 100
+}
+
 // New function to draw dots
 function drawDots(canvas, ctx, state) {
     const { scale, offsetX, offsetY } = state
 
-    const gridSize = 25; // Size of grid cells
-    const dotRadius = 0.5; // Size of the dots
+    const gridSize = 40 // Size of grid cells
+    const dotRadiusInitial = 0.25 * state.scale * state.devicePixelRatio
+    const dotRadiusRounded = round(dotRadiusInitial)
+    const dotRadius = clamp(dotRadiusRounded, 1.5, 2)
+
     const startX = Math.floor((-offsetX / scale) / gridSize) * gridSize
     const startY = Math.floor((-offsetY / scale) / gridSize) * gridSize
 
-    ctx.fillStyle = '#ddd'
+    ctx.fillStyle = '#e6e6e630'
 
     // Draw dots at grid intersections
     for (let x = startX; x < canvas.width / scale - offsetX / scale; x += gridSize) {
         for (let y = startY; y < canvas.height / scale - offsetY / scale; y += gridSize) {
             ctx.beginPath()
-            ctx.arc(x, y, dotRadius, 0, Math.PI * 2)
+            if (state.scale < 0.8) {
+                ctx.fillRect(x - dotRadius, y - dotRadius, dotRadius * 2, dotRadius * 2)
+            } else {
+                ctx.arc(x, y, dotRadius, 0, Math.PI * 2)
+            }
             ctx.fill()
         }
     }
@@ -379,11 +394,14 @@ function makeUUID() {
     const portals = document.getElementById('portals')
     const canvas = document.getElementById('canvas')
     const ctx = canvas.getContext('2d')
+    const devicePixelRatio = window.devicePixelRatio
 
     const state = {
         scale: 1,
         offsetX: 0,
         offsetY: 0,
+
+        devicePixelRatio: devicePixelRatio,
 
         isPanning: false,
         startX: undefined,
