@@ -5,6 +5,14 @@ import { atom, createStore } from "jotai"
 import { App } from "./app"
 import "./index.css"
 
+function setCanvasSize(world, canvas) {
+    const { window: view, canvasState: state } = world
+    canvas.width = view.innerWidth * state.devicePixelRatio
+    canvas.height = view.innerHeight * state.devicePixelRatio
+    canvas.style.width = `${canvas.width}px`;
+    canvas.style.height = `${canvas.height}px`;
+}
+
 function resizeCanvasPlugin(world, commands) {
     const {
         window: view,
@@ -13,12 +21,10 @@ function resizeCanvasPlugin(world, commands) {
         canvasState: state,
     } = world
 
-    canvas.width = view.innerWidth
-    canvas.height = view.innerHeight
+    setCanvasSize(world, canvas)
 
     view.addEventListener('resize', () => {
-        canvas.width = view.innerWidth
-        canvas.height = view.innerHeight
+        setCanvasSize(world, canvas)
         commands.draw(canvas, ctx, state)
     })
 }
