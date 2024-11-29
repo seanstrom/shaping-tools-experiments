@@ -5,14 +5,6 @@ import { atom, createStore } from "jotai"
 import { App } from "./app"
 import "./index.css"
 
-function setCanvasSize(world, canvas) {
-    const { window: view, canvasState: state } = world
-    canvas.width = view.innerWidth * state.devicePixelRatio
-    canvas.height = view.innerHeight * state.devicePixelRatio
-    canvas.style.width = `${canvas.width}px`;
-    canvas.style.height = `${canvas.height}px`;
-}
-
 function resizeCanvasPlugin(world, commands) {
     const {
         window: view,
@@ -21,10 +13,10 @@ function resizeCanvasPlugin(world, commands) {
         canvasState: state,
     } = world
 
-    setCanvasSize(world, canvas)
+    commands.resize(canvas, screen, state)
 
     view.addEventListener('resize', () => {
-        setCanvasSize(world, canvas)
+        commands.resize(canvas, screen, state)
         commands.draw(canvas, ctx, state)
     })
 }
@@ -155,6 +147,13 @@ function createNotePlugin(world, commands) {
             commands.draw(canvas, ctx, state)
         }
     })
+}
+
+function resize(canvas, screen, state) {
+    canvas.width = screen.innerWidth * state.devicePixelRatio
+    canvas.height = screen.innerHeight * state.devicePixelRatio
+    canvas.style.width = `${canvas.width}px`;
+    canvas.style.height = `${canvas.height}px`;
 }
 
 // Redraw canvas
@@ -438,6 +437,7 @@ function makeUUID() {
 
     const commands = {
         draw: draw,
+        resize: resize,
         render: render,
         uuid: makeUUID,
         addPortal: addPortal,
@@ -454,6 +454,7 @@ function makeUUID() {
         plugin(world, commands)
     }
 
+    commands.resize(canvas, screen, state)
     commands.draw(canvas, ctx, state)
 
     world.canvasStore.sub(world.canvasPortals, () => {
