@@ -7,7 +7,7 @@ import "./index.css"
 
 function resizeCanvasPlugin(world, commands) {
     const {
-        window: view,
+        window: screen,
         canvasContext: ctx,
         canvasElement: canvas,
         canvasState: state,
@@ -15,7 +15,7 @@ function resizeCanvasPlugin(world, commands) {
 
     commands.resize(canvas, screen, state)
 
-    view.addEventListener('resize', () => {
+    screen.addEventListener('resize', () => {
         commands.resize(canvas, screen, state)
         commands.draw(canvas, ctx, state)
     })
@@ -23,12 +23,13 @@ function resizeCanvasPlugin(world, commands) {
 
 function panCanvasPlugin(world, commands) {
     const {
+        window: screen,
         canvasContext: ctx,
         canvasElement: canvas,
         canvasState: state
     } = world
 
-    const surface = window.document.body
+    const surface = screen.document.body
 
     // Handle panning
     surface.addEventListener('mousedown', (e) => {
@@ -86,13 +87,13 @@ function panCanvasPlugin(world, commands) {
 
 function zoomCanvasPlugin(world, commands) {
     const {
+        window: screen,
         canvasContext: ctx,
         canvasElement: canvas,
         canvasState: state,
-        window: view,
     } = world
 
-    const surface = view.document.body
+    const surface = screen.document.body
 
     surface.addEventListener('wheel', (e) => {
         // Only zoom when Ctrl is pressed
@@ -117,7 +118,7 @@ function zoomCanvasPlugin(world, commands) {
         state.offsetY -= (worldY * newScale - worldY * state.scale)
 
         state.scale = newScale
-        view.document.body.style.setProperty('--element-scale', `${newScale}`)
+        screen.document.body.style.setProperty('--element-scale', `${newScale}`)
 
         requestAnimationFrame(() => {
             commands.draw(canvas, ctx, state)
@@ -390,17 +391,17 @@ function makeUUID() {
 }
 
 (function main() {
+    const screen = window
     const portals = document.getElementById('portals')
     const canvas = document.getElementById('canvas')
     const ctx = canvas.getContext('2d')
-    const devicePixelRatio = window.devicePixelRatio
 
     const state = {
         scale: 1,
         offsetX: 0,
         offsetY: 0,
 
-        devicePixelRatio: devicePixelRatio,
+        devicePixelRatio: screen.devicePixelRatio,
 
         isPanning: false,
         startX: undefined,
@@ -416,7 +417,7 @@ function makeUUID() {
     }
 
     const world = {
-        window: window,
+        window: screen,
         canvasContext: ctx,
         canvasElement: canvas,
         canvasState: state,
