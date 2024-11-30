@@ -358,20 +358,26 @@ function drawArrowhead(ctx, state, x, y, fromX, fromY) {
 }
 
 function makeEntityElement(world, commands, entityId, entityState) {
-    const { canvasState: state, canvasElement: canvas, canvasContext: ctx, window: view } = world
-    const { worldX, worldY } = entityState
+    const {
+        window: screen,
+        canvasContext: ctx,
+        canvasElement: canvas,
+        canvasState: state,
+    } = world
 
-    const element = view.document.createElement('div')
+    const element = screen.document.createElement('div')
     element.classList.add('world-element')
     element.id = `entity-${entityId}`
     element.dataset.entityId = entityId
-    element.dataset.worldX = worldX
-    element.dataset.worldY = worldY
 
     element.addEventListener('mousedown', (e) => {
         const entityState = state.entities[entityId]
         if (typeof entityState === 'object') {
-            e.stopPropagation() // Prevent canvas pan
+            // topic: dragging an entity
+            // comment: we prevent the event from bubbling up to the parent element,
+            // so that we don't trigger a pan when dragging an entity.
+            e.stopPropagation()
+
             entityState.isDragging = true
             entityState.startX = e.clientX
             entityState.startY = e.clientY
@@ -380,27 +386,32 @@ function makeEntityElement(world, commands, entityId, entityState) {
         }
     })
 
-    const surface = view.document.body
+    // topic: dragging an entity
+    // comment: we attach a mousemove event listener to the parent element,
+    // so that we can update the entity position even when slightly dragging outside the entity element.
+    const surface = screen.document.body
+
+    // topic: refactoring drag event listeners
+    // comment: we could refactor each element drag event listeners into single event listener,
+    // because that would reduce the amount of event listeners to notify when handling a drag gesture.
 
     surface.addEventListener('mousemove', (e) => {
         const entityState = state.entities[entityId]
         if (entityState?.isDragging) {
+            // topic: dragging an entity
+            // comment: we calculate the screen offset between the current and starting mouse positions.
             const dx = e.clientX - entityState.startX
             const dy = e.clientY - entityState.startY
-            const scale = state.scale
 
-            // Convert screen movement to world movement
-            const worldDX = dx / scale
-            const worldDY = dy / scale
+            // topic: dragging an entity
+            // comment: we convert the screen offset to a world offset.
+            const worldDX = dx / state.scale
+            const worldDY = dy / state.scale
 
-            const newWorldX = entityState.startWorldX + worldDX
-            const newWorldY = entityState.startWorldY + worldDY
-
-            element.dataset.worldX = newWorldX
-            element.dataset.worldY = newWorldY
-
-            entityState.worldX = newWorldX
-            entityState.worldY = newWorldY
+            // topic: dragging an entity
+            // comment: we update the entity world position with the new world offset.
+            entityState.worldX = entityState.startWorldX + worldDX
+            entityState.worldY = entityState.startWorldY + worldDY
 
             requestAnimationFrame(() => {
                 commands.draw(canvas, ctx, state)
@@ -408,6 +419,9 @@ function makeEntityElement(world, commands, entityId, entityState) {
         }
     })
 
+    // topic: dragging an entity
+    // comment: we attach a mouseup event listener to the parent element,
+    // so that we can finish the drag gesture when releasing the mouse button.
     surface.addEventListener('mouseup', () => {
         const entityState = state.entities[entityId]
         if (entityState?.isDragging) {
