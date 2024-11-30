@@ -225,15 +225,15 @@ function createNotePlugin(world, commands) {
             // topic: creating a note entity
             // comment: we calculate the world coordinates of the mouse position.
             const rect = canvas.getBoundingClientRect()
-            const worldX = (e.clientX - rect.left - state.offsetX) / state.scale
-            const worldY = (e.clientY - rect.top - state.offsetY) / state.scale
+            const screenX = e.clientX - rect.left
+            const screenY = e.clientY - rect.top
 
             // topic: creating a note entity
-            // comment: we create a new entity at the world coordinates.
+            // comment: we create a new entity based on the screen coordinates.
             // comment: we add the entity DOM element to a list of portal elements.
             // comment: we redraw the canvas to visualise the arrows between entities.
             const entityId = commands.uuid()
-            const portal = createEntityAtWorldPosition(world, commands, entityId, worldX, worldY)
+            const portal = createEntityAtPosition(world, commands, entityId, screenX, screenY)
             commands.addPortal(world, commands, entityId, portal)
             commands.draw(canvas, ctx, state)
         }
@@ -412,7 +412,7 @@ function render(world) {
 // Entities
 //
 
-function makeEntityElement(world, commands, entityId, entityState) {
+function makeEntityElement(world, commands, entityId) {
     const {
         window: screen,
         canvasContext: ctx,
@@ -510,26 +510,24 @@ function makeDefaultEntityState(entityId, worldX, worldY) {
     }
 }
 
-// Create an HTML element at the given world position
-function createEntityAtWorldPosition(world, commands, entityId, worldX, worldY) {
+function createEntityAtPosition(world, commands, entityId, screenX, screenY) {
     const {
         canvasState: state,
         surfaceElement: surface,
     } = world
 
+    // topic: creating an entity
+    // comment: we convert the screen coordinates to world coordinates.
+    const worldX = (screenX - state.offsetX) / state.scale
+    const worldY = (screenY - state.offsetY) / state.scale
+
     const entityState = makeDefaultEntityState(entityId, worldX, worldY)
-    const element = makeEntityElement(world, commands, entityId, entityState)
-
-    // Convert world coordinates to screen coordinates
-    const screenX = worldX * state.scale + state.offsetX
-    const screenY = worldY * state.scale + state.offsetY
-
+    const element = makeEntityElement(world, commands, entityId)
+    
     setElementPosition(element, screenX, screenY)
-    surface.appendChild(element)
-
-    // Store entity in state
     state.entities[entityId] = entityState
     state.entityIds.push(entityId)
+    surface.appendChild(element)
 
     return element
 }
