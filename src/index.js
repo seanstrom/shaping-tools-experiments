@@ -5,6 +5,22 @@ import { atom, createStore } from "jotai"
 import { App } from "./app"
 import "./index.css"
 
+//
+// Utils
+//
+
+function clamp(num, lower, upper) {
+    return Math.min(Math.max(num, lower), upper);
+}
+
+function round(num) {
+    return Math.round((num + Number.EPSILON) * 100) / 100
+}
+
+//
+// Plugins
+//
+
 function resizeCanvasPlugin(world, commands) {
     const {
         canvasContext: ctx,
@@ -224,41 +240,10 @@ function createNotePlugin(world, commands) {
     })
 }
 
-function resize(canvas, surface, state) {
-    const containerWidth = surface.innerWidth || surface.clientWidth
-    const containerHeight = surface.innerHeight || surface.clientHeight
-    canvas.width = containerWidth * state.devicePixelRatio
-    canvas.height = containerHeight * state.devicePixelRatio
-    canvas.style.width = `${canvas.width}px`;
-    canvas.style.height = `${canvas.height}px`;
-}
+//
+// Drawing
+//
 
-// Redraw canvas
-function draw(canvas, ctx, state) {
-    const { scale, offsetX, offsetY } = state
-
-    ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY) // Apply pan and zoom
-    ctx.clearRect(-offsetX / scale, -offsetY / scale, canvas.width / scale, canvas.height / scale)
-
-    // Draw dots instead of grid
-    drawDots(canvas, ctx, state)
-
-    // Draw arrows connecting circles
-    drawArrows(ctx, state)
-
-    // Update positions of HTML elements
-    updateElementPositions(state)
-}
-
-function clamp(num, lower, upper) {
-    return Math.min(Math.max(num, lower), upper);
-}
-
-function round(num) {
-    return Math.round((num + Number.EPSILON) * 100) / 100
-}
-
-// New function to draw dots
 function drawDots(canvas, ctx, state) {
     const { scale, offsetX, offsetY } = state
 
@@ -311,7 +296,7 @@ function drawGrid(canvas, ctx, state) {
     }
 }
 
-// Draw arrows connecting the circles
+
 function drawArrows(ctx, state) {
     const { entityIds, entities } = state;
 
@@ -342,7 +327,6 @@ function drawArrows(ctx, state) {
     }
 }
 
-// Draw an arrowhead at the end of a line
 function drawArrowhead(ctx, state, x, y, fromX, fromY) {
     const { scale } = state
 
@@ -356,6 +340,77 @@ function drawArrowhead(ctx, state, x, y, fromX, fromY) {
     ctx.closePath();
     ctx.fill();
 }
+
+function setElementPosition(element, screenX, screenY) {
+    element.style.setProperty('--element-screenX', `${screenX}px`)
+    element.style.setProperty('--element-screenY', `${screenY}px`)
+}
+
+// Update positions of HTML elements based on transformations
+function updateElementPositions(state) {
+    for (const entityId of state.entityIds) {
+        const element = document.getElementById(`entity-${entityId}`);
+        const entity = state.entities[entityId];
+        if (element && entity) {
+            const { scale, offsetX, offsetY } = state;
+            const screenX = entity.worldX * scale + offsetX;
+            const screenY = entity.worldY * scale + offsetY;
+            setElementPosition(element, screenX, screenY);
+        }
+    }
+}
+
+//
+// Commands
+//
+
+function makeUUID() {
+    return crypto.randomUUID()
+}
+
+function draw(canvas, ctx, state) {
+    const { scale, offsetX, offsetY } = state
+
+    ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY) // Apply pan and zoom
+    ctx.clearRect(-offsetX / scale, -offsetY / scale, canvas.width / scale, canvas.height / scale)
+
+    // Draw dots instead of grid
+    drawDots(canvas, ctx, state)
+
+    // Draw arrows connecting circles
+    drawArrows(ctx, state)
+
+    // Update positions of HTML elements
+    updateElementPositions(state)
+}
+
+function resize(canvas, surface, state) {
+    const containerWidth = surface.innerWidth || surface.clientWidth
+    const containerHeight = surface.innerHeight || surface.clientHeight
+    canvas.width = containerWidth * state.devicePixelRatio
+    canvas.height = containerHeight * state.devicePixelRatio
+    canvas.style.width = `${canvas.width}px`;
+    canvas.style.height = `${canvas.height}px`;
+}
+
+function addPortal(world, commands, entityId, container) {
+    const portals = world.canvasStore.get(world.canvasPortals)
+    portals.push({ entityId, container })
+    world.canvasStore.set(world.canvasPortals, portals)
+    commands.render()
+}
+
+function render(world) {
+    const props = {
+        store: world.canvasStore,
+        portals: world.canvasPortals,
+    }
+    world.portalsRoot.render(<App {...props} />)
+}
+
+//
+// Entities
+//
 
 function makeEntityElement(world, commands, entityId, entityState) {
     const {
@@ -479,35 +534,9 @@ function createEntityAtWorldPosition(world, commands, entityId, worldX, worldY) 
     return element
 }
 
-// Update positions of HTML elements based on transformations
-function updateElementPositions(state) {
-    for (const entityId of state.entityIds) {
-        const element = document.getElementById(`entity-${entityId}`);
-        const entity = state.entities[entityId];
-        if (element && entity) {
-            const { scale, offsetX, offsetY } = state;
-            const screenX = entity.worldX * scale + offsetX;
-            const screenY = entity.worldY * scale + offsetY;
-            setElementPosition(element, screenX, screenY);
-        }
-    }
-}
-
-function setElementPosition(element, screenX, screenY) {
-    element.style.setProperty('--element-screenX', `${screenX}px`)
-    element.style.setProperty('--element-screenY', `${screenY}px`)
-}
-
-function makeUUID() {
-    return crypto.randomUUID()
-}
-
-function addPortal(world, commands, entityId, container) {
-    const portals = world.canvasStore.get(world.canvasPortals)
-    portals.push({ entityId, container })
-    world.canvasStore.set(world.canvasPortals, portals)
-    commands.render()
-}
+//
+// Main
+//
 
 (function main() {
     const screen = window
@@ -548,16 +577,12 @@ function addPortal(world, commands, entityId, container) {
         portalsElement: portals,
     }
 
-    const render = () => {
-        world.portalsRoot.render(<App store={world.canvasStore} portals={world.canvasPortals} />)
-    }
-
     const commands = {
         draw: draw,
         resize: resize,
-        render: render,
         uuid: makeUUID,
         addPortal: addPortal,
+        render: render.bind(null, world),
     }
 
     const plugins = [
