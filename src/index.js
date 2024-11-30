@@ -497,16 +497,25 @@ function makeEntityElement(world, commands, entityId) {
     return element
 }
 
-function makeDefaultEntityState(entityId, worldX, worldY) {
+function setElementDimensions(element, width, height) {
+    element.style.setProperty('--element-width', `${width}px`)
+    element.style.setProperty('--element-min-height', `${height}px`)
+}
+
+function makeDefaultEntityState(entityId, worldX, worldY, defaultWidth = 400, defaultHeight = 300) {
     return {
         worldX,
         worldY,
         entityId,
-        isDragging: false,
+        defaultWidth,
+        defaultHeight,
         startX: 0,
         startY: 0,
         startWorldX: 0,
         startWorldY: 0,
+        isDragging: false,
+        currentWidth: defaultWidth,
+        currentHeight: defaultHeight,
     }
 }
 
@@ -523,8 +532,9 @@ function createEntityAtPosition(world, commands, entityId, screenX, screenY) {
 
     const entityState = makeDefaultEntityState(entityId, worldX, worldY)
     const element = makeEntityElement(world, commands, entityId)
-    
+
     setElementPosition(element, screenX, screenY)
+    setElementDimensions(element, entityState.defaultWidth, entityState.defaultHeight)
     state.entities[entityId] = entityState
     state.entityIds.push(entityId)
     surface.appendChild(element)
