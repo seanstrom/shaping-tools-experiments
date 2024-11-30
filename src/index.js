@@ -13,8 +13,6 @@ function resizeCanvasPlugin(world, commands) {
         canvasState: state,
     } = world
 
-    commands.resize(canvas, screen, state)
-
     screen.addEventListener('resize', () => {
         commands.resize(canvas, screen, state)
         commands.draw(canvas, ctx, state)
