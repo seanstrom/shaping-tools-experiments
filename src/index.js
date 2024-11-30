@@ -7,34 +7,33 @@ import "./index.css"
 
 function resizeCanvasPlugin(world, commands) {
     const {
-        window: screen,
         canvasContext: ctx,
         canvasElement: canvas,
         canvasState: state,
+        surfaceElement: surface,
     } = world
 
     // topic: window resize
     // docs: https://developer.mozilla.org/en-US/docs/Web/API/Window/resize_event
     // comment: when the canvas container changes in size, we adjust the canvas size and redraw the canvas.
-    screen.addEventListener('resize', () => {
-        commands.resize(canvas, screen, state)
+    surface.addEventListener('resize', () => {
+        commands.resize(canvas, surface, state)
         commands.draw(canvas, ctx, state)
     })
 }
 
 function panCanvasPlugin(world, commands) {
     const {
-        window: screen,
         canvasContext: ctx,
         canvasElement: canvas,
-        canvasState: state
+        canvasState: state,
+        surfaceElement: surface,
     } = world
 
     // topic: panning with trackpad
-    // comment: we attach event handlers to the parent element of all the elements,
+    // comment: we attach event handlers to the surface element,
     // this allows us to process pan events while hovering over the canvas or entity elements.
-    const surface = screen.document.body
-
+    //
     // topic: panning with trackpad
     // docs: https://developer.mozilla.org/en-US/docs/Web/API/Element/wheel_event
     // comment: we use the wheel event for detecting scroll events on the parent element.
@@ -125,16 +124,15 @@ function panCanvasPlugin(world, commands) {
 
 function zoomCanvasPlugin(world, commands) {
     const {
-        window: screen,
         canvasContext: ctx,
         canvasElement: canvas,
         canvasState: state,
+        surfaceElement: surface,
     } = world
 
     // topic: zooming with trackpad
-    // comment: we attach event handlers to the parent element of all the elements,
+    // comment: we attach event handlers to the surface element,
     // this allows us to process zoom events while hovering over the canvas or entity elements.
-    const surface = screen.document.body
 
     // topic: zooming with trackpad
     // docs: https://developer.mozilla.org/en-US/docs/Web/API/Element/wheel_event
@@ -183,7 +181,7 @@ function zoomCanvasPlugin(world, commands) {
 
                 // topic: zooming with trackpad
                 // comment: we update the element scale value with a CSS variable.
-                screen.document.body.style.setProperty('--element-scale', `${newScale}`)
+                surface.style.setProperty('--element-scale', `${newScale}`)
 
                 requestAnimationFrame(() => {
                     commands.draw(canvas, ctx, state)
@@ -226,9 +224,11 @@ function createNotePlugin(world, commands) {
     })
 }
 
-function resize(canvas, screen, state) {
-    canvas.width = screen.innerWidth * state.devicePixelRatio
-    canvas.height = screen.innerHeight * state.devicePixelRatio
+function resize(canvas, surface, state) {
+    const containerWidth = surface.innerWidth || surface.clientWidth
+    const containerHeight = surface.innerHeight || surface.clientHeight
+    canvas.width = containerWidth * state.devicePixelRatio
+    canvas.height = containerHeight * state.devicePixelRatio
     canvas.style.width = `${canvas.width}px`;
     canvas.style.height = `${canvas.height}px`;
 }
@@ -363,6 +363,7 @@ function makeEntityElement(world, commands, entityId, entityState) {
         canvasContext: ctx,
         canvasElement: canvas,
         canvasState: state,
+        surfaceElement: surface,
     } = world
 
     const element = screen.document.createElement('div')
@@ -387,9 +388,8 @@ function makeEntityElement(world, commands, entityId, entityState) {
     })
 
     // topic: dragging an entity
-    // comment: we attach a mousemove event listener to the parent element,
+    // comment: we attach a mousemove event listener to the surface element,
     // so that we can update the entity position even when slightly dragging outside the entity element.
-    const surface = screen.document.body
 
     // topic: refactoring drag event listeners
     // comment: we could refactor each element drag event listeners into single event listener,
@@ -457,7 +457,11 @@ function makeDefaultEntityState(entityId, worldX, worldY) {
 
 // Create an HTML element at the given world position
 function createEntityAtWorldPosition(world, commands, entityId, worldX, worldY) {
-    const { canvasState: state, window: view } = world
+    const {
+        canvasState: state,
+        surfaceElement: surface,
+    } = world
+
     const entityState = makeDefaultEntityState(entityId, worldX, worldY)
     const element = makeEntityElement(world, commands, entityId, entityState)
 
@@ -466,7 +470,7 @@ function createEntityAtWorldPosition(world, commands, entityId, worldX, worldY) 
     const screenY = worldY * state.scale + state.offsetY
 
     setElementPosition(element, screenX, screenY)
-    view.document.body.appendChild(element)
+    surface.appendChild(element)
 
     // Store entity in state
     state.entities[entityId] = entityState
@@ -500,6 +504,7 @@ function makeUUID() {
 
 (function main() {
     const screen = window
+    const surface = screen.document.body
     const portals = document.getElementById('portals')
     const canvas = document.getElementById('canvas')
     const ctx = canvas.getContext('2d')
@@ -526,6 +531,7 @@ function makeUUID() {
 
     const world = {
         window: screen,
+        surfaceElement: surface,
         canvasContext: ctx,
         canvasElement: canvas,
         canvasState: state,
@@ -563,7 +569,7 @@ function makeUUID() {
         plugin(world, commands)
     }
 
-    commands.resize(canvas, screen, state)
+    commands.resize(canvas, surface, state)
     commands.draw(canvas, ctx, state)
 
     world.canvasStore.sub(world.canvasPortals, () => {
