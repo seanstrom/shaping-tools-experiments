@@ -358,42 +358,50 @@ function makeEntityElement(world, commands, entityId, entityState) {
     element.dataset.worldY = worldY
 
     element.addEventListener('mousedown', (e) => {
-        entityState.isDragging = true
-        entityState.startX = e.clientX
-        entityState.startY = e.clientY
-        entityState.startWorldX = entityState.worldX
-        entityState.startWorldY = entityState.worldY
-        e.stopPropagation() // Prevent canvas pan
+        const entityState = state.entities[entityId]
+        if (typeof entityState === 'object') {
+            e.stopPropagation() // Prevent canvas pan
+            entityState.isDragging = true
+            entityState.startX = e.clientX
+            entityState.startY = e.clientY
+            entityState.startWorldX = entityState.worldX
+            entityState.startWorldY = entityState.worldY
+        }
     })
 
     const surface = view.document.body
 
     surface.addEventListener('mousemove', (e) => {
         const entityState = state.entities[entityId]
-        if (!entityState.isDragging) return
+        if (entityState?.isDragging) {
+            const dx = e.clientX - entityState.startX
+            const dy = e.clientY - entityState.startY
+            const scale = state.scale
 
-        const dx = e.clientX - entityState.startX
-        const dy = e.clientY - entityState.startY
-        const scale = state.scale
+            // Convert screen movement to world movement
+            const worldDX = dx / scale
+            const worldDY = dy / scale
 
-        // Convert screen movement to world movement
-        const worldDX = dx / scale
-        const worldDY = dy / scale
+            const newWorldX = entityState.startWorldX + worldDX
+            const newWorldY = entityState.startWorldY + worldDY
 
-        const newWorldX = entityState.startWorldX + worldDX
-        const newWorldY = entityState.startWorldY + worldDY
+            element.dataset.worldX = newWorldX
+            element.dataset.worldY = newWorldY
 
-        element.dataset.worldX = newWorldX
-        element.dataset.worldY = newWorldY
+            entityState.worldX = newWorldX
+            entityState.worldY = newWorldY
 
-        entityState.worldX = newWorldX
-        entityState.worldY = newWorldY
-
-        commands.draw(canvas, ctx, state)
+            requestAnimationFrame(() => {
+                commands.draw(canvas, ctx, state)
+            })
+        }
     })
 
     surface.addEventListener('mouseup', () => {
-        entityState.isDragging = false
+        const entityState = state.entities[entityId]
+        if (entityState?.isDragging) {
+            entityState.isDragging = false
+        }
     })
 
     return element
