@@ -218,7 +218,7 @@ function createNotePlugin(world, commands) {
             // comment: we redraw the canvas to visualise the arrows between entities.
             const entityId = commands.uuid()
             const portal = createEntityAtWorldPosition(world, commands, entityId, worldX, worldY)
-            commands.addPortal(entityId, portal)
+            commands.addPortal(world, commands, entityId, portal)
             commands.draw(canvas, ctx, state)
         }
     })
@@ -502,6 +502,13 @@ function makeUUID() {
     return crypto.randomUUID()
 }
 
+function addPortal(world, commands, entityId, container) {
+    const portals = world.canvasStore.get(world.canvasPortals)
+    portals.push({ entityId, container })
+    world.canvasStore.set(world.canvasPortals, portals)
+    commands.render()
+}
+
 (function main() {
     const screen = window
     const surface = screen.document.body
@@ -545,11 +552,6 @@ function makeUUID() {
         world.portalsRoot.render(<App store={world.canvasStore} portals={world.canvasPortals} />)
     }
 
-    const addPortal = (entityId, container) => {
-        const updatedPortals = [...world.canvasStore.get(world.canvasPortals), { entityId, container }]
-        world.canvasStore.set(world.canvasPortals, updatedPortals)
-    }
-
     const commands = {
         draw: draw,
         resize: resize,
@@ -571,8 +573,4 @@ function makeUUID() {
 
     commands.resize(canvas, surface, state)
     commands.draw(canvas, ctx, state)
-
-    world.canvasStore.sub(world.canvasPortals, () => {
-        commands.render()
-    })
 })()
