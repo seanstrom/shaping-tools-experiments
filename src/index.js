@@ -108,7 +108,18 @@ function panCanvasPlugin(world, commands) {
     // docs: https://developer.mozilla.org/en-US/docs/Web/API/Element/mouseup_event
     // comment: we use the mouseup event for finishing the pan on the canvas.
     canvas.addEventListener('mouseup', (e) => {
-        state.isPanning = false
+        if (state.isPanning) {
+            state.isPanning = false
+        }
+    })
+
+    // topic: panning with mouse
+    // docs: https://developer.mozilla.org/en-US/docs/Web/API/Element/mouseleave_event
+    // comment: we use the mouseleave event for stopping the pan on the canvas.
+    canvas.addEventListener('mouseleave', () => {
+        if (state.isPanning) {
+            state.isPanning = false
+        }
     })
 }
 
