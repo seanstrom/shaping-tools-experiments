@@ -13,6 +13,9 @@ function resizeCanvasPlugin(world, commands) {
         canvasState: state,
     } = world
 
+    // topic: window resize
+    // docs: https://developer.mozilla.org/en-US/docs/Web/API/Window/resize_event
+    // comment: when the canvas container changes in size, we adjust the canvas size and redraw the canvas.
     screen.addEventListener('resize', () => {
         commands.resize(canvas, screen, state)
         commands.draw(canvas, ctx, state)
@@ -27,58 +30,84 @@ function panCanvasPlugin(world, commands) {
         canvasState: state
     } = world
 
+    // topic: panning with trackpad
+    // comment: we attach event handlers to the parent element of all the elements,
+    // this allows us to process pan events while hovering over the canvas or entity elements.
     const surface = screen.document.body
 
-    // Handle panning
-    surface.addEventListener('mousedown', (e) => {
-        // Only start panning on primary (left) mouse button
-        if (e.button !== 0) return
-
-        state.isPanning = true
-        state.hasMoved = false
-        state.startX = e.clientX
-        state.startY = e.clientY
-    })
-
-    // Add trackpad two-finger pan
+    // topic: panning with trackpad
+    // docs: https://developer.mozilla.org/en-US/docs/Web/API/Element/wheel_event
+    // comment: we use the wheel event for detecting scroll events on the parent element.
     surface.addEventListener('wheel', (e) => {
-        // Only handle two-finger pan when ctrl is not pressed (ctrl+wheel is for zoom)
-        if (e.ctrlKey) return
+        // topic: panning with trackpad
+        // comment: we only want to pan when the ctrl key is not pressed,
+        // because we want to reserve ctrl+wheel event for zooming.
+        if (!e.ctrlKey) {
+            e.preventDefault()
 
-        e.preventDefault()
+            // topic: panning with trackpad
+            // comment: we invert the scroll direction for natural scrolling.
+            state.offsetX += -e.deltaX
+            state.offsetY += -e.deltaY
 
-        state.offsetX += -e.deltaX
-        state.offsetY += -e.deltaY
-
-        requestAnimationFrame(() => {
-            commands.draw(canvas, ctx, state)
-        })
+            requestAnimationFrame(() => {
+                commands.draw(canvas, ctx, state)
+            })
+        }
     }, { passive: false })
 
-    // Existing mouse move and up handlers for regular mouse panning
-    surface.addEventListener('mousemove', (e) => {
-        if (!state.isPanning) return
-
-        const dx = e.clientX - state.startX
-        const dy = e.clientY - state.startY
-
-        // If the movement exceeds the threshold, it's considered a pan
-        if (Math.abs(dx) > state.moveThreshold || Math.abs(dy) > state.moveThreshold) {
-            state.hasMoved = true
+    // topic: panning with mouse
+    // docs: https://developer.mozilla.org/en-US/docs/Web/API/Element/mousedown_event
+    // comment: we use the mousedown event for initiating a pan on the canvas.
+    canvas.addEventListener('mousedown', (e) => {
+        // topic: panning with mouse
+        // comment: we only want to pan when the left mouse button is pressed.
+        if (e.button === 0) {
+            state.isPanning = true
+            state.hasMoved = false
+            state.startX = e.clientX
+            state.startY = e.clientY
         }
-
-        state.offsetX += dx
-        state.offsetY += dy
-
-        state.startX = e.clientX
-        state.startY = e.clientY
-
-        requestAnimationFrame(() => {
-            commands.draw(canvas, ctx, state)
-        })
     })
 
-    surface.addEventListener('mouseup', (e) => {
+    // topic: panning with mouse
+    // docs: https://developer.mozilla.org/en-US/docs/Web/API/Element/mousemove_event
+    // comment: we use the mousemove event for updating the pan offset while panning on the canvas.
+    canvas.addEventListener('mousemove', (e) => {
+        // topic: panning with mouse
+        // comment: we only want to update the pan offset while the canvas is being panned.
+        if (state.isPanning) {
+            // topic: panning with mouse
+            // docs: https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/clientX
+            // docs: https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/clientY
+            // comment: we calculate the difference between the current mouse position and the starting mouse position.
+            const dx = e.clientX - state.startX
+            const dy = e.clientY - state.startY
+
+            // topic: panning with mouse
+            // comment: we mark the canvas as moved if the pan offset has exceeded a threshold.
+            if (Math.abs(dx) > state.moveThreshold || Math.abs(dy) > state.moveThreshold) {
+                state.hasMoved = true
+            }
+
+            // topic: panning with mouse
+            // comment: we update the canvas offset based on the pan offset.
+            state.offsetX += dx
+            state.offsetY += dy
+
+            state.startX = e.clientX
+            state.startY = e.clientY
+
+            requestAnimationFrame(() => {
+                commands.draw(canvas, ctx, state)
+            })
+        }
+    })
+
+    // topic: panning with mouse
+    // docs: https://developer.mozilla.org/en-US/docs/Web/API/Element/mouseup_event
+    // comment: we use the mouseup event for finishing the pan on the canvas.
+    canvas.addEventListener('mouseup', (e) => {
         state.isPanning = false
     })
 }
@@ -91,36 +120,65 @@ function zoomCanvasPlugin(world, commands) {
         canvasState: state,
     } = world
 
+    // topic: zooming with trackpad
+    // comment: we attach event handlers to the parent element of all the elements,
+    // this allows us to process zoom events while hovering over the canvas or entity elements.
     const surface = screen.document.body
 
+    // topic: zooming with trackpad
+    // docs: https://developer.mozilla.org/en-US/docs/Web/API/Element/wheel_event
+    // comment: we use the wheel event for detecting scroll events on the parent element.
     surface.addEventListener('wheel', (e) => {
-        // Only zoom when Ctrl is pressed
-        if (!e.ctrlKey) return
+        // topic: zooming with trackpad
+        // comment: we only want to zoom when the ctrl key is pressed,
+        // because we want to reserve normal wheel events for panning.
+        if (e.ctrlKey) {
+            e.preventDefault()
 
-        e.preventDefault()
+            // topic: zooming with trackpad
+            // docs: https://developer.mozilla.org/en-US/docs/Web/API/WheelEvent/deltaY
+            // comment: we use the vertical scroll amount for adjusting the zoom level.
+            // comment: we invert the scroll amount for natural scrolling.
+            // comment: we multiply the scroll amount to configure the sensitivity.
+            const zoomAmount = e.deltaY * -0.001
 
-        // Use deltaY for zoom amount (might need to adjust sensitivity)
-        const zoomAmount = e.deltaY * -0.001
-        const newScale = state.scale + zoomAmount
+            // topic: zooming with trackpad
+            // comment: we adjust the canvas and element scale based on the zoom level.
+            // comment: we clamp the scale to a minimum and maximum scale values.
+            const newScale = state.scale + zoomAmount
 
-        if (newScale < 0.1 || newScale > 10) return
+            // topic: zooming with trackpad
+            // comment: we clamp the scale to a minimum and maximum scale values.
+            if (newScale >= 0.1 || newScale <= 10) {
+                // topic: zooming with trackpad
+                // comment: we calculate the mouse position relative to the canvas container.
+                const rect = canvas.getBoundingClientRect()
+                const mouseX = e.clientX - rect.left
+                const mouseY = e.clientY - rect.top
 
-        const rect = canvas.getBoundingClientRect()
-        const mouseX = e.clientX - rect.left
-        const mouseY = e.clientY - rect.top
+                // topic: zooming with trackpad
+                // comment: we convert screen mouse position into world coordinates.
+                const worldX = (mouseX - state.offsetX) / state.scale
+                const worldY = (mouseY - state.offsetY) / state.scale
 
-        const worldX = (mouseX - state.offsetX) / state.scale
-        const worldY = (mouseY - state.offsetY) / state.scale
+                // topic: zooming with trackpad
+                // comment: we adjust the canvas offset to remain centered on the mouse position while zooming.
+                state.offsetX -= (worldX * newScale - worldX * state.scale)
+                state.offsetY -= (worldY * newScale - worldY * state.scale)
 
-        state.offsetX -= (worldX * newScale - worldX * state.scale)
-        state.offsetY -= (worldY * newScale - worldY * state.scale)
+                // topic: zooming with trackpad
+                // comment: we update the canvas scale value.
+                state.scale = newScale
 
-        state.scale = newScale
-        screen.document.body.style.setProperty('--element-scale', `${newScale}`)
+                // topic: zooming with trackpad
+                // comment: we update the element scale value with a CSS variable.
+                screen.document.body.style.setProperty('--element-scale', `${newScale}`)
 
-        requestAnimationFrame(() => {
-            commands.draw(canvas, ctx, state)
-        })
+                requestAnimationFrame(() => {
+                    commands.draw(canvas, ctx, state)
+                })
+            }
+        }
     }, { passive: false })
 }
 
@@ -131,15 +189,24 @@ function createNotePlugin(world, commands) {
         canvasState: state
     } = world
 
+    // topic: creating a note entity
+    // docs: https://developer.mozilla.org/en-US/docs/Web/API/Element/click_event
+    // comment: we attach a click handler to the canvas element,
+    // so that we can create a note when clicking on an empty area of the canvas.
     canvas.addEventListener('click', (e) => {
-        // Only create an entity if it was a click (no significant movement)
+        // topic: creating a note entity
+        // comment: we only create a note if the mouse is not panning
         if (!state.isPanning && !state.hasMoved) {
+            // topic: creating a note entity
+            // comment: we calculate the world coordinates of the mouse position.
             const rect = canvas.getBoundingClientRect()
-
-            // Convert screen coordinates to world coordinates
             const worldX = (e.clientX - rect.left - state.offsetX) / state.scale
             const worldY = (e.clientY - rect.top - state.offsetY) / state.scale
 
+            // topic: creating a note entity
+            // comment: we create a new entity at the world coordinates.
+            // comment: we add the entity DOM element to a list of portal elements.
+            // comment: we redraw the canvas to visualise the arrows between entities.
             const entityId = commands.uuid()
             const portal = createEntityAtWorldPosition(world, commands, entityId, worldX, worldY)
             commands.addPortal(entityId, portal)
