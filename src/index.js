@@ -429,6 +429,16 @@ function makeEntityElement(world, commands, entityId, entityState) {
         }
     })
 
+    // topic: dragging an entity
+    // comment: we attach a mouseleave event listener to the parent element,
+    // so that we can finish the drag gesture when the mouse leaves the canvas.
+    surface.addEventListener('mouseleave', () => {
+        const entityState = state.entities[entityId]
+        if (entityState?.isDragging) {
+            entityState.isDragging = false
+        }
+    })
+
     return element
 }
 
