@@ -59,7 +59,7 @@ function panCanvasPlugin(world, commands) {
     // topic: panning with mouse
     // docs: https://developer.mozilla.org/en-US/docs/Web/API/Element/mousedown_event
     // comment: we use the mousedown event for initiating a pan on the canvas.
-    canvas.addEventListener('mousedown', (e) => {
+    surface.addEventListener('mousedown', (e) => {
         // topic: panning with mouse
         // comment: we only want to pan when the left mouse button is pressed.
         if (e.button === 0) {
@@ -73,7 +73,7 @@ function panCanvasPlugin(world, commands) {
     // topic: panning with mouse
     // docs: https://developer.mozilla.org/en-US/docs/Web/API/Element/mousemove_event
     // comment: we use the mousemove event for updating the pan offset while panning on the canvas.
-    canvas.addEventListener('mousemove', (e) => {
+    surface.addEventListener('mousemove', (e) => {
         // topic: panning with mouse
         // comment: we only want to update the pan offset while the canvas is being panned.
         if (state.isPanning) {
@@ -107,7 +107,7 @@ function panCanvasPlugin(world, commands) {
     // topic: panning with mouse
     // docs: https://developer.mozilla.org/en-US/docs/Web/API/Element/mouseup_event
     // comment: we use the mouseup event for finishing the pan on the canvas.
-    canvas.addEventListener('mouseup', (e) => {
+    surface.addEventListener('mouseup', (e) => {
         if (state.isPanning) {
             state.isPanning = false
         }
@@ -116,7 +116,7 @@ function panCanvasPlugin(world, commands) {
     // topic: panning with mouse
     // docs: https://developer.mozilla.org/en-US/docs/Web/API/Element/mouseleave_event
     // comment: we use the mouseleave event for stopping the pan on the canvas.
-    canvas.addEventListener('mouseleave', () => {
+    surface.addEventListener('mouseleave', () => {
         if (state.isPanning) {
             state.isPanning = false
         }
