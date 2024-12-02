@@ -53,7 +53,7 @@ canvas {
 /* Temporary styles for displaying circle */
 .world-element {
   background: rgba(38, 36, 27, 0.75);
-  width: var(--element-width);
+  width: var(--element-min-width);
   min-height: var(--element-min-height);
   border-radius: 0.5rem;
   padding: 10px;
