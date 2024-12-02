@@ -170,11 +170,14 @@ function zoomCanvasPlugin(world, commands) {
             // topic: zooming with trackpad
             // comment: we adjust the canvas and element scale based on the zoom level.
             // comment: we clamp the scale to a minimum and maximum scale values.
-            const newScale = state.scale + zoomAmount
+            const nextScale = state.scale + zoomAmount
+            const scaleMin = 0.5
+            const scaleMax = 3
+            const newScale = clamp(nextScale, scaleMin, scaleMax)
 
             // topic: zooming with trackpad
             // comment: we clamp the scale to a minimum and maximum scale values.
-            if (newScale >= 0.1 || newScale <= 10) {
+            if (newScale >= scaleMin && newScale <= scaleMax) {
                 // topic: zooming with trackpad
                 // comment: we calculate the mouse position relative to the canvas container.
                 const rect = canvas.getBoundingClientRect()
