@@ -138,6 +138,13 @@ function panCanvasPlugin(world, commands) {
     })
 }
 
+function isZoomSupported() {
+    // topic: detecting zoom support
+    // comment: modern browsers in 2024 support zoom via CSS,
+    // but we may still want to update this function so we can fallback using a transform.
+    return true
+}
+
 function zoomCanvasPlugin(world, commands) {
     const {
         canvasContext: ctx,
@@ -199,8 +206,19 @@ function zoomCanvasPlugin(world, commands) {
                 state.scale = newScale
 
                 // topic: zooming with trackpad
-                // comment: we update the element scale value with a CSS variable.
-                surface.style.setProperty('--element-scale', `${newScale}`)
+                // comment: we use CSS zoom if supported, otherwise we use a transform.
+                // comment: CSS zoom is preferred because it renders with crisp text.
+                if (isZoomSupported()) {
+                    surface.style.setProperty("--element-zoom", `${newScale}`)
+                    if (surface.classList.contains("use-transform")) {
+                        surface.classList.remove("use-transform")
+                    }
+                } else {
+                    surface.style.setProperty("--element-scale", `${newScale}`)
+                    if (!surface.classList.contains("use-transform")) {
+                        surface.classList.add("use-transform")
+                    }
+                }
 
                 requestAnimationFrame(() => {
                     commands.draw(canvas, ctx, state)

@@ -46,7 +46,12 @@ canvas {
   top: 0;
   left: 0;
   position: absolute;
-  will-change: tranform;
+  will-change: transform;
+  transform: translate3d(calc(var(--element-screenX) / var(--element-zoom, 1)), calc(var(--element-screenY) / var(--element-zoom, 1)), 0) translate(-50%, -50%);
+  zoom: var(--element-zoom, 1);
+}
+
+body.use-transform .world-element {
   transform: translate3d(var(--element-screenX), var(--element-screenY), 0) translate(-50%, -50%) scale(var(--element-scale));
 }
 
