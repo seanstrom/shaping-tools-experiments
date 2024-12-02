@@ -497,12 +497,38 @@ function makeEntityElement(world, commands, entityId) {
     return element
 }
 
-function setElementDimensions(element, width, height) {
+function makeResizeObserver(world, entityId, element) {
+    const { canvasState: state } = world
+    return new ResizeObserver((entries) => {
+        for (const entry of entries) {
+            if (entry.target.dataset.entityId === entityId) {
+                if (entry.contentBoxSize) {
+                    const width = entry.contentBoxSize[0].inlineSize
+                    const height = entry.contentBoxSize[0].blockSize
+                    setEntityDimensions(state, entityId, element, width, height)
+                } else {
+                    const width = entry.contentRect.width
+                    const height = entry.contentRect.height
+                    setEntityDimensions(state, entityId, element, width, height)
+                }
+            }
+        }
+    })
+}
+
+function setEntityDimensions(state, entityId, element, width, height) {
+    state.entities[entityId].currentWidth = width
+    state.entities[entityId].currentHeight = height
     element.style.setProperty('--element-width', `${width}px`)
+    element.style.setProperty('--element-height', `${height}px`)
+}
+
+function setElementDefaultDimensions(element, width, height) {
+    element.style.setProperty('--element-min-width', `${width}px`)
     element.style.setProperty('--element-min-height', `${height}px`)
 }
 
-function makeDefaultEntityState(entityId, worldX, worldY, defaultWidth = 400, defaultHeight = 300) {
+function makeDefaultEntityState(entityId, worldX, worldY, defaultWidth = 360, defaultHeight = 130) {
     return {
         worldX,
         worldY,
@@ -532,12 +558,15 @@ function createEntityAtPosition(world, commands, entityId, screenX, screenY) {
 
     const entityState = makeDefaultEntityState(entityId, worldX, worldY)
     const element = makeEntityElement(world, commands, entityId)
+    const observer = makeResizeObserver(world, entityId, element)
 
     setElementPosition(element, screenX, screenY)
-    setElementDimensions(element, entityState.defaultWidth, entityState.defaultHeight)
+    setElementDefaultDimensions(element, entityState.defaultWidth, entityState.defaultHeight)
     state.entities[entityId] = entityState
     state.entityIds.push(entityId)
+    world.portalObservers[entityId] = observer
     surface.appendChild(element)
+    observer.observe(element)
 
     return element
 }
@@ -583,6 +612,7 @@ function createEntityAtPosition(world, commands, entityId, screenX, screenY) {
         canvasStore: createStore(),
         portalsRoot: createRoot(portals),
         portalsElement: portals,
+        portalObservers: {},
     }
 
     const commands = {
