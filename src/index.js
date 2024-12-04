@@ -254,8 +254,8 @@ function createNotePlugin(world, commands) {
             // comment: we add the entity DOM element to a list of portal elements.
             // comment: we redraw the canvas to visualise the arrows between entities.
             const entityId = commands.uuid()
-            const portal = createEntityAtPosition(world, commands, entityId, screenX, screenY)
-            commands.addPortal(world, commands, entityId, portal)
+            const { worldElement, portalElement } = createEntityAtPosition(world, commands, entityId, screenX, screenY)
+            commands.addPortal(world, commands, entityId, portalElement)
             commands.draw(canvas, ctx, state)
         }
     })
@@ -447,6 +447,26 @@ function makeEntityElement(world, commands, entityId) {
     element.id = `entity-${entityId}`
     element.dataset.entityId = entityId
 
+    // Create anchor container
+    const anchorContainer = screen.document.createElement('div')
+    anchorContainer.classList.add('anchor-container')
+
+    // Create portal container
+    const portalContainer = screen.document.createElement('div')
+    portalContainer.classList.add('portal-container')
+
+    // Create the four anchors
+    const positions = ['top', 'right', 'bottom', 'left']
+    for (const position of positions) {
+        const anchor = screen.document.createElement('div')
+        anchor.classList.add('element-anchor', `anchor-${position}`)
+        anchorContainer.appendChild(anchor)
+    }
+
+    // Add containers to element
+    element.appendChild(anchorContainer)
+    element.appendChild(portalContainer)
+
     element.addEventListener('mousedown', (e) => {
         const entityState = state.entities[entityId]
         if (typeof entityState === 'object') {
@@ -515,7 +535,7 @@ function makeEntityElement(world, commands, entityId) {
         }
     })
 
-    return element
+    return { worldElement: element, portalElement: portalContainer }
 }
 
 function makeResizeObserver(world, entityId, element) {
@@ -578,7 +598,7 @@ function createEntityAtPosition(world, commands, entityId, screenX, screenY) {
     const worldY = (screenY - state.offsetY) / state.scale
 
     const entityState = makeDefaultEntityState(entityId, worldX, worldY)
-    const element = makeEntityElement(world, commands, entityId)
+    const { worldElement: element, portalElement } = makeEntityElement(world, commands, entityId)
     const observer = makeResizeObserver(world, entityId, element)
 
     setElementPosition(element, screenX, screenY)
@@ -589,7 +609,7 @@ function createEntityAtPosition(world, commands, entityId, screenX, screenY) {
     surface.appendChild(element)
     observer.observe(element)
 
-    return element
+    return { worldElement: element, portalElement }
 }
 
 //

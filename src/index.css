@@ -54,6 +54,7 @@ canvas {
       calc(var(--element-screenY) / var(--element-zoom)))
     translate(-50%, -50%);
   zoom: var(--element-zoom, 1);
+  /* position: relative; */
 }
 
 body.use-transform .world-element {
@@ -95,4 +96,52 @@ body.use-transform .world-element {
   &:focus-within {
     outline: none;
   }
+}
+
+.anchor-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.element-anchor {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #4a9eff;
+  border-radius: 50%;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.anchor-top {
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.anchor-right {
+  right: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.anchor-bottom {
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.anchor-left {
+  left: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.portal-container {
+  width: 100%;
+  height: 100%;
 }
