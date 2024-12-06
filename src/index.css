@@ -64,13 +64,20 @@ body.use-transform .world-element {
 /* Temporary styles for displaying circle */
 .world-element {
   background: rgba(38, 36, 27, 0.75);
+  /* box-sizing: border-box; */
   width: var(--element-min-width);
   min-height: var(--element-min-height);
   border-radius: 0.5rem;
-  padding: 10px;
   display: flex;
   flex: 1;
   flex-direction: column;
+}
+
+.world-element .portal-container {
+  flex: 1;
+  display: flex;
+  padding: 10px;
+  box-sizing: border-box;
 }
 
 /* Editor */
