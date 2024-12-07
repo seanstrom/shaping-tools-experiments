@@ -429,10 +429,8 @@ function drawArrows(ctx, state) {
 }
 
 function drawArrowhead(ctx, state, x, y, fromX, fromY) {
-    const { scale } = state
-
     const angle = Math.atan2(y - fromY, x - fromX);
-    const size = 10 / scale; // Arrowhead size scales with zoom
+    const size = 8; // Smaller arrowhead that scales with zoom
 
     ctx.beginPath();
     ctx.moveTo(x, y);
