@@ -27,12 +27,13 @@ function resizeCanvasPlugin(world, commands) {
         canvasElement: canvas,
         canvasState: state,
         surfaceElement: surface,
+        window: screen,
     } = world
 
     // topic: window resize
     // docs: https://developer.mozilla.org/en-US/docs/Web/API/Window/resize_event
     // comment: when the canvas container changes in size, we adjust the canvas size and redraw the canvas.
-    surface.addEventListener('resize', () => {
+    screen.addEventListener('resize', () => {
         commands.resize(canvas, surface, state)
         commands.draw(canvas, ctx, state)
     })
