@@ -390,11 +390,31 @@ function makeUUID() {
     return crypto.randomUUID()
 }
 
-function draw(canvas, ctx, state) {
-    const { scale, offsetX, offsetY } = state
+function clearCanvas(ctx, state) {
+    // Save the current transform
+    ctx.save()
+    // Reset transform to clear the entire canvas
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    // Clear the entire canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    // Restore the transform
+    ctx.restore()
+}
 
-    ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY) // Apply pan and zoom
-    ctx.clearRect(-offsetX / scale, -offsetY / scale, canvas.width / scale, canvas.height / scale)
+function transformCanvas(ctx, state) {
+    const scale = state.scale * state.devicePixelRatio
+    const offsetX = state.offsetX * state.devicePixelRatio
+    const offsetY = state.offsetY * state.devicePixelRatio
+    ctx.translate(0.5, 0.5);
+    
+    // Apply both the zoom scale and device pixel ratio together
+    // Scale the offset by device pixel ratio since we're working in physical pixels
+    ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY)
+}
+
+function draw(canvas, ctx, state) {
+    transformCanvas(ctx, state)
+    clearCanvas(ctx, state)
 
     // Draw dots instead of grid
     drawDots(canvas, ctx, state)
@@ -409,10 +429,17 @@ function draw(canvas, ctx, state) {
 function resize(canvas, surface, state) {
     const containerWidth = surface.innerWidth || surface.clientWidth
     const containerHeight = surface.innerHeight || surface.clientHeight
-    canvas.width = containerWidth * state.devicePixelRatio
-    canvas.height = containerHeight * state.devicePixelRatio
-    canvas.style.width = `${canvas.width}px`;
-    canvas.style.height = `${canvas.height}px`;
+
+    const scaledWidth = containerWidth * state.devicePixelRatio
+    const scaledHeight = containerHeight * state.devicePixelRatio
+    
+    // Set the canvas's internal dimensions accounting for device pixel ratio
+    canvas.width = scaledWidth
+    canvas.height = scaledHeight
+    
+    // Set the display size through CSS
+    canvas.style.width = `${containerWidth}px`
+    canvas.style.height = `${containerHeight}px`
 }
 
 function addPortal(world, commands, entityId, container) {
