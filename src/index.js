@@ -280,8 +280,8 @@ function drawDots(canvas, ctx, state) {
     ctx.fillStyle = '#e6e6e630'
 
     // Draw dots at grid intersections
-    for (let x = startX; x < canvas.width / scale - offsetX / scale; x += gridSize) {
-        for (let y = startY; y < canvas.height / scale - offsetY / scale; y += gridSize) {
+    for (let x = startX; x < canvas.width / state.scale - offsetX / state.scale; x += gridSize) {
+        for (let y = startY; y < canvas.height / state.scale - offsetY / state.scale; y += gridSize) {
             ctx.beginPath()
             if (state.scale < 0.8) {
                 ctx.fillRect(x - dotRadius, y - dotRadius, dotRadius * 2, dotRadius * 2)
@@ -324,28 +324,107 @@ function drawArrows(ctx, state) {
 
     if (entityIds.length < 2) return;
 
-    ctx.strokeStyle = 'blue';
-    ctx.lineWidth = 2;
-    ctx.fillStyle = 'blue';
+    ctx.strokeStyle = '#6B7280';
+    ctx.lineWidth = 1 * state.devicePixelRatio;
+    ctx.fillStyle = '#6B7280';
 
-    for (let i = 0; i < entityIds.length - 1; i++) {
-        const start = entities[entityIds[i]];
-        const end = entities[entityIds[i + 1]];
+    for (const connectionId of state.entityConnectionIds) {
+        const connection = state.entityConnections[connectionId]
+        const startEntity = state.entities[connection.fromId]
+        const endEntity = state.entities[connection.toId]
 
-        // Calculate control point for the curve (midpoint with an offset)
-        const midX = (start.worldX + end.worldX) / 2;
-        const midY = (start.worldY + end.worldY) / 2;
-        const controlX = midX + (end.worldY - start.worldY) * 0.3; // Adjust curvature
-        const controlY = midY - (end.worldX - start.worldX) * 0.3;
+        const anchorSize = 10 / 2;
 
-        // Draw the arrow curve
+        // Calculate anchor positions in world coordinates
+
+        const startX = (() => {
+            switch (connection.fromPosition) {
+                case "top":
+                    return startEntity.worldX
+                case "bottom":
+                    return startEntity.worldX
+                case "left":
+                    return startEntity.worldX - startEntity.currentWidth / 2 + anchorSize / 2
+                case "right":
+                    return startEntity.worldX + startEntity.currentWidth / 2 - anchorSize / 2
+                default:
+                    return startEntity.worldX + startEntity.currentWidth / 2 - anchorSize / 2
+            }
+        })()
+
+        const startY = (() => {
+            switch (connection.fromPosition) {
+                case "top":
+                    return startEntity.worldY - startEntity.currentHeight / 2 - anchorSize / 2
+                case "bottom":
+                    return startEntity.worldY + startEntity.currentHeight / 2 + anchorSize / 2
+                case "left":
+                    return startEntity.worldY
+                case "right":
+                    return startEntity.worldY
+                default:
+                    return startEntity.worldY
+            }
+        })()
+ 
+        const endX = (() => {
+            switch (connection.toPosition) {
+                case "top":
+                    return endEntity.worldX 
+                case "bottom":
+                    return endEntity.worldX
+                case "left":
+                    return endEntity.worldX - endEntity.currentWidth / 2 + anchorSize / 2
+                case "right":
+                    return endEntity.worldX + endEntity.currentWidth / 2 - anchorSize / 2
+                default:
+                    return endEntity.worldX + endEntity.currentWidth / 2 - anchorSize / 2
+            }
+        })()
+
+        const endY = (() => {
+            switch (connection.toPosition) {
+                case "top":
+                    return endEntity.worldY - endEntity.currentHeight / 2 - anchorSize / 2
+                case "bottom":
+                    return endEntity.worldY + endEntity.currentHeight / 2 + anchorSize / 2
+                case "left":
+                    return endEntity.worldY
+                case "right":
+                    return endEntity.worldY
+                default:
+                    return endEntity.worldY
+            }
+        })()
+
+        // Calculate control points for the curve
+        const dx = endX - startX;
+        const minOffset = 30;
+        const maxOffset = 80;
+        const controlOffset = Math.min(Math.max(Math.abs(dx) * 0.2, minOffset), maxOffset);
+
+        const controlPoint1X = startX + controlOffset;
+        const controlPoint1Y = startY;
+
+        const controlPoint2X = endX - controlOffset;
+        const controlPoint2Y = endY;
+
+        // Draw the curved line
+        // ctx.lineWidth = 4;
         ctx.beginPath();
-        ctx.moveTo(start.worldX, start.worldY); // Start point in world space
-        ctx.quadraticCurveTo(controlX, controlY, end.worldX, end.worldY); // Control and end point in world space
+        ctx.moveTo(startX, startY);
+        ctx.bezierCurveTo(
+            controlPoint1X, controlPoint1Y,
+            controlPoint2X, controlPoint2Y,
+            endX, endY
+        );
         ctx.stroke();
 
-        // Draw arrowhead at the end
-        drawArrowhead(ctx, state, end.worldX, end.worldY, controlX, controlY);
+        // Draw arrowhead
+        // drawArrowhead(ctx, state, endX, endY, controlPoint2X, controlPoint2Y);
+
+        // Reset fill style for next iteration
+        // ctx.fillStyle = '#6B7280';
     }
 }
 
@@ -405,8 +484,7 @@ function transformCanvas(ctx, state) {
     const scale = state.scale * state.devicePixelRatio
     const offsetX = state.offsetX * state.devicePixelRatio
     const offsetY = state.offsetY * state.devicePixelRatio
-    ctx.translate(0.5, 0.5);
-    
+
     // Apply both the zoom scale and device pixel ratio together
     // Scale the offset by device pixel ratio since we're working in physical pixels
     ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY)
@@ -432,11 +510,11 @@ function resize(canvas, surface, state) {
 
     const scaledWidth = containerWidth * state.devicePixelRatio
     const scaledHeight = containerHeight * state.devicePixelRatio
-    
+
     // Set the canvas's internal dimensions accounting for device pixel ratio
     canvas.width = scaledWidth
     canvas.height = scaledHeight
-    
+
     // Set the display size through CSS
     canvas.style.width = `${containerWidth}px`
     canvas.style.height = `${containerHeight}px`
@@ -487,6 +565,7 @@ function makeEntityElement(world, commands, entityId) {
     const positions = ['top', 'right', 'bottom', 'left']
     for (const position of positions) {
         const anchor = screen.document.createElement('div')
+        anchor.dataset.position = position
         anchor.classList.add('element-anchor', `anchor-${position}`)
         anchorContainer.appendChild(anchor)
     }
@@ -560,6 +639,63 @@ function makeEntityElement(world, commands, entityId) {
         const entityState = state.entities[entityId]
         if (entityState?.isDragging) {
             entityState.isDragging = false
+        }
+    })
+
+    // Add drag start handler for anchors
+    anchorContainer.addEventListener('mousedown', (e) => {
+        const anchor = e.target;
+        if (anchor.classList.contains('element-anchor')) {
+            e.stopPropagation(); // Prevent entity drag
+
+            state.isDraggingAnchor = true;
+            state.dragStartEntityId = entityId;
+            state.dragStartAnchor = anchor;
+            state.dragStartX = e.clientX;
+            state.dragStartY = e.clientY;
+            state.dragStartAnchorPosition = anchor.dataset.position
+
+            // Add temporary line layer if it doesn't exist
+            if (!state.tempLineLayer) {
+                state.tempLineLayer = createTempLineLayer(world);
+            }
+        }
+    });
+
+    // Add hover effect for potential drop targets
+    anchorContainer.addEventListener('mouseover', (e) => {
+        const anchor = e.target;
+        if (state.isDraggingAnchor && anchor.classList.contains('element-anchor')) {
+            anchor.classList.add('anchor-hover');
+            state.currentDropTarget = {
+                entityId,
+                anchor
+            };
+        }
+    });
+
+    anchorContainer.addEventListener('mouseout', (e) => {
+        const anchor = e.target;
+        if (anchor.classList.contains('element-anchor')) {
+            anchor.classList.remove('anchor-hover');
+            state.currentDropTarget = null;
+        }
+    });
+
+    anchorContainer.addEventListener("mouseup", (e) => {
+        const anchor = e.target
+        if (anchor.classList.contains("element-anchor")) {
+            if (!state.currentDropTarget.entityId !== state.dragStartEntityId) {
+                const connection = {
+                    id: commands.uuid(),
+                    fromPosition: state.dragStartAnchorPosition,
+                    fromId: state.dragStartEntityId,
+                    toId: state.currentDropTarget.entityId,
+                    toPosition: anchor.dataset.position,
+                }
+                state.entityConnections[connection.id] = connection
+                state.entityConnectionIds.push(connection.id)
+            }
         }
     })
 
@@ -640,6 +776,83 @@ function createEntityAtPosition(world, commands, entityId, screenX, screenY) {
     return { worldElement: element, portalElement }
 }
 
+// Add these new functions
+
+function createTempLineLayer(world) {
+    const { window: screen, surfaceElement: surface } = world;
+    const layer = screen.document.createElement('canvas');
+    layer.classList.add('temp-line-layer');
+    layer.style.position = 'absolute';
+    layer.style.top = '0';
+    layer.style.left = '0';
+    layer.style.pointerEvents = 'none';
+    layer.width = surface.clientWidth;
+    layer.height = surface.clientHeight;
+    surface.appendChild(layer);
+    return layer;
+}
+
+function drawTempLine(world, startX, startY, endX, endY) {
+    const { tempLineLayer } = world.canvasState;
+    const ctx = tempLineLayer.getContext('2d');
+
+    ctx.clearRect(0, 0, tempLineLayer.width, tempLineLayer.height);
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(endX, endY);
+    ctx.strokeStyle = '#6B7280';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+}
+
+// Add to your main surface event listeners:
+function addAnchorDragHandlers(world, commands) {
+    const { surfaceElement: surface, canvasState: state } = world;
+
+    surface.addEventListener('mousemove', (e) => {
+        if (state.isDraggingAnchor) {
+            const startAnchor = state.dragStartAnchor;
+            const startRect = startAnchor.getBoundingClientRect();
+            const startX = startRect.left + startRect.width / 2;
+            const startY = startRect.top + startRect.height / 2;
+
+            drawTempLine(world, startX, startY, e.clientX, e.clientY);
+        }
+    });
+
+    surface.addEventListener('mouseup', (e) => {
+        if (state.isDraggingAnchor) {
+            if (state.currentDropTarget) {
+                // Create connection between entities
+                const connection = {
+                    from: state.dragStartEntityId,
+                    to: state.currentDropTarget.entityId
+                };
+                // Add to your connections state/storage
+                state.connections = state.connections || [];
+                state.connections.push(connection);
+
+                commands.draw(world.canvasElement, world.canvasContext, state);
+            }
+
+            // Cleanup
+            state.isDraggingAnchor = false;
+            state.dragStartEntityId = null;
+            state.dragStartAnchor = null;
+            if (state.tempLineLayer) {
+                state.tempLineLayer.remove();
+                state.tempLineLayer = null;
+            }
+
+            // Remove any remaining hover states
+            const hoveredAnchors = surface.querySelectorAll('.anchor-hover');
+            for (const anchor of hoveredAnchors) {
+                anchor.classList.remove('anchor-hover');
+            }
+        }
+    });
+}
+
 //
 // Main
 //
@@ -669,6 +882,10 @@ function createEntityAtPosition(world, commands, entityId, screenX, screenY) {
         // Store entities by their ID
         entities: {},
         entityIds: [],
+
+        // Store entity connections by ID
+        entityConnections: {},
+        entityConnectionIds: [],
     }
 
     const world = {
@@ -697,6 +914,7 @@ function createEntityAtPosition(world, commands, entityId, screenX, screenY) {
         panCanvasPlugin,
         zoomCanvasPlugin,
         createNotePlugin,
+        addAnchorDragHandlers,
     ]
 
     for (const plugin of plugins) {
