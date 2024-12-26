@@ -366,11 +366,11 @@ function drawArrows(ctx, state) {
                     return startEntity.worldY
             }
         })()
- 
+
         const endX = (() => {
             switch (connection.toPosition) {
                 case "top":
-                    return endEntity.worldX 
+                    return endEntity.worldX
                 case "bottom":
                     return endEntity.worldX
                 case "left":
@@ -683,16 +683,18 @@ function makeEntityElement(world, commands, entityId) {
     anchorContainer.addEventListener("mouseup", (e) => {
         const anchor = e.target
         if (anchor.classList.contains("element-anchor")) {
-            if (!state.currentDropTarget.entityId !== state.dragStartEntityId) {
-                const connection = {
-                    id: commands.uuid(),
-                    fromPosition: state.dragStartAnchorPosition,
-                    fromId: state.dragStartEntityId,
-                    toId: state.currentDropTarget.entityId,
-                    toPosition: anchor.dataset.position,
+            if (state.currentDropTarget) {
+                if (state.currentDropTarget.entityId !== state.dragStartEntityId) {
+                    const connection = {
+                        id: commands.uuid(),
+                        fromPosition: state.dragStartAnchorPosition,
+                        fromId: state.dragStartEntityId,
+                        toId: state.currentDropTarget.entityId,
+                        toPosition: anchor.dataset.position,
+                    }
+                    state.entityConnections[connection.id] = connection
+                    state.entityConnectionIds.push(connection.id)
                 }
-                state.entityConnections[connection.id] = connection
-                state.entityConnectionIds.push(connection.id)
             }
         }
     })
