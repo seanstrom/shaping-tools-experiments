@@ -7,7 +7,11 @@ const targets = ["chrome >= 87", "edge >= 88", "firefox >= 78", "safari >= 14"];
 export default defineConfig({
 	resolve: {
 		extensions: [".js", ".jsx", ".ts", ".tsx", ".json", ".wasm"]
+	},	
+	devServer: {
+		port: '8084',
 	},
+	devTool: "source-map",
 	entry: {
 		main: "./src/index.js"
 	},
