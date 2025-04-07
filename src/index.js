@@ -403,14 +403,21 @@ function drawArrows(ctx, state) {
         const maxOffset = 80;
         const controlOffset = Math.min(Math.max(Math.abs(dx) * 0.2, minOffset), maxOffset);
 
-        const controlPoint1X = startX + controlOffset;
-        const controlPoint1Y = startY;
+        const controlPoint1X = (connection?.pathPoints?.control1?.x || startX) + controlOffset;
+        const controlPoint1Y = (connection?.pathPoints?.control1?.y || startY);
 
-        const controlPoint2X = endX - controlOffset;
-        const controlPoint2Y = endY;
+        const controlPoint2X = (connection?.pathPoints?.control2?.x || endX) - controlOffset;
+        const controlPoint2Y = (connection?.pathPoints?.control2?.y || endY);
+
+        // Store the path points in the connection object for hit testing
+        connection.pathPoints = {
+            start: { x: startX, y: startY },
+            control1: { x: controlPoint1X, y: controlPoint1Y },
+            control2: { x: controlPoint2X, y: controlPoint2Y },
+            end: { x: endX, y: endY }
+        }
 
         // Draw the curved line
-        // ctx.lineWidth = 4;
         ctx.beginPath();
         ctx.moveTo(startX, startY);
         ctx.bezierCurveTo(
@@ -420,11 +427,24 @@ function drawArrows(ctx, state) {
         );
         ctx.stroke();
 
-        // Draw arrowhead
-        // drawArrowhead(ctx, state, endX, endY, controlPoint2X, controlPoint2Y);
+        // Draw drag handle if this connection is being hovered
+        if (state.selectedConnectionId === connectionId) {
+            const midPoint = getBezierPoint(0.5,
+                connection.pathPoints.start,
+                connection.pathPoints.control1,
+                connection.pathPoints.control2,
+                connection.pathPoints.end
+            );
 
-        // Reset fill style for next iteration
-        // ctx.fillStyle = '#6B7280';
+            // Draw handle
+            ctx.fillStyle = '#FFF';
+            ctx.strokeStyle = '#6B7280';
+            ctx.lineWidth = 1.5 * state.devicePixelRatio;
+            ctx.beginPath();
+            ctx.arc(midPoint.x, midPoint.y, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        }
     }
 }
 
@@ -853,6 +873,129 @@ function addAnchorDragHandlers(world, commands) {
     });
 }
 
+// Add these new utility functions
+function getBezierPoint(t, p0, p1, p2, p3) {
+    const oneMinusT = 1 - t;
+    return {
+        x: Math.pow(oneMinusT, 3) * p0.x +
+            3 * Math.pow(oneMinusT, 2) * t * p1.x +
+            3 * oneMinusT * Math.pow(t, 2) * p2.x +
+            Math.pow(t, 3) * p3.x,
+        y: Math.pow(oneMinusT, 3) * p0.y +
+            3 * Math.pow(oneMinusT, 2) * t * p1.y +
+            3 * oneMinusT * Math.pow(t, 2) * p2.y +
+            Math.pow(t, 3) * p3.y
+    };
+}
+
+function isPointOnBezierCurve(point, start, control1, control2, end, threshold = 5) {
+    // Check multiple points along the curve
+    for (let t = 0; t <= 1; t += 0.05) {
+        const curvePoint = getBezierPoint(t, start, control1, control2, end);
+        const distance = Math.sqrt(
+            Math.pow(point.x - curvePoint.x, 2) +
+            Math.pow(point.y - curvePoint.y, 2)
+        );
+        if (distance < threshold) return true;
+    }
+    return false;
+}
+
+// Add a new plugin for handling connector interactions
+function connectorInteractionPlugin(world, commands) {
+    const {
+        canvasContext: ctx,
+        canvasElement: canvas,
+        canvasState: state,
+    } = world
+
+    canvas.addEventListener('mousedown', (e) => {
+        const rect = canvas.getBoundingClientRect()
+        const mouseX = (e.clientX - rect.left - state.offsetX) / state.scale
+        const mouseY = (e.clientY - rect.top - state.offsetY) / state.scale
+
+        // Check if mouse is over any connection
+        let selectedConnectionId = null;
+        for (const connectionId of state.entityConnectionIds) {
+            const connection = state.entityConnections[connectionId]
+            const { pathPoints } = connection
+            const isConnectionSelected = isPointOnBezierCurve(
+                { x: mouseX, y: mouseY },
+                pathPoints.start,
+                pathPoints.control1,
+                pathPoints.control2,
+                pathPoints.end)
+
+            if (isConnectionSelected) {
+                selectedConnectionId = connectionId
+                break
+            }
+        }
+
+        if (!state.isDraggingAnchor) {
+        }
+        if (state.selectedConnectionId !== selectedConnectionId) {
+            state.selectedConnectionId = selectedConnectionId
+            canvas.style.cursor = selectedConnectionId ? 'pointer' : 'default'
+            commands.draw(canvas, ctx, state)
+        }
+    })
+
+    canvas.addEventListener('mousedown', (e) => {
+        if (state.selectedConnectionId) {
+            e.stopPropagation(); // Prevent panning
+
+            const connection = state.entityConnections[state.selectedConnectionId];
+            state.isDraggingConnection = true;
+            state.draggedConnectionId = state.selectedConnectionId;
+            state.dragStartX = e.clientX;
+            state.dragStartY = e.clientY;
+
+            // Store original control points
+            state.dragStartControl1 = { ...connection.pathPoints.control1 };
+            state.dragStartControl2 = { ...connection.pathPoints.control2 };
+
+            canvas.style.cursor = 'grabbing';
+        }
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+        if (state.isDraggingConnection) {
+            const dx = (e.clientX - state.dragStartX) / state.scale;
+            const dy = (e.clientY - state.dragStartY) / state.scale;
+
+            const connection = state.entityConnections[state.draggedConnectionId];
+
+            // Update control points
+            connection.pathPoints.control1 = {
+                x: state.dragStartControl1.x + dx,
+                y: state.dragStartControl1.y + dy
+            };
+            connection.pathPoints.control2 = {
+                x: state.dragStartControl2.x + dx,
+                y: state.dragStartControl2.y + dy
+            };
+
+            commands.draw(canvas, ctx, state);
+        }
+    });
+
+    canvas.addEventListener('mouseup', () => {
+        if (state.isDraggingConnection) {
+            canvas.style.cursor = state.selectedConnectionId ? 'pointer' : 'default';
+            state.isDraggingConnection = false;
+            state.draggedConnectionId = null;
+        }
+    });
+
+    // Reset cursor when mouse leaves canvas
+    canvas.addEventListener('mouseleave', () => {
+        canvas.style.cursor = 'default';
+        state.selectedConnectionId = null;
+        commands.draw(canvas, ctx, state);
+    });
+}
+
 //
 // Main
 //
@@ -915,6 +1058,7 @@ function addAnchorDragHandlers(world, commands) {
         zoomCanvasPlugin,
         createNotePlugin,
         addAnchorDragHandlers,
+        connectorInteractionPlugin,
     ]
 
     for (const plugin of plugins) {
