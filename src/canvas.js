@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client"
 import { atom, createStore } from "jotai"
 
 import { App } from "./app"
-import "./index.css"
+import "./canvas.css"
 
 //
 // Utils
