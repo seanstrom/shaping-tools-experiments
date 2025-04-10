@@ -19,8 +19,8 @@ export default defineConfig({
     },
     devTool: "source-map",
     entry: {
-        canvas: "./src/canvas.js",
-        note: "./src/note.js",
+        canvas: "./src/canvas/canvas.js",
+        note: "./src/note/note.js",
     },
     module: {
         rules: [
@@ -50,8 +50,13 @@ export default defineConfig({
     plugins: [
         new rspack.HtmlRspackPlugin({
             filename: "canvas.html",
-            template: "src/canvas.html",
+            template: "src/canvas/canvas.html",
             chunks: ["canvas"],
+        }),
+        new rspack.HtmlRspackPlugin({
+            filename: "note.html",
+            template: "src/note/note.html",
+            chunks: ["note"],
         }),
     ],
     optimization: {

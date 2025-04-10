@@ -2,7 +2,7 @@ import React from "react"
 import { createRoot } from "react-dom/client"
 import { atom, createStore } from "jotai"
 
-import { App } from "./app"
+import { App } from "../canvas/app"
 import "./note.css"
 
 //
