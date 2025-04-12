@@ -16,6 +16,7 @@ export default defineConfig({
     },	
     devServer: {
         port: '8084',
+        hot: true,
     },
     devTool: "source-map",
     entry: {
